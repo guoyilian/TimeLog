@@ -13,8 +13,8 @@ import java.util.List;
 
 public class WeekBarChartView extends View {
 
-    private static final float[] Y_LABELS = {0, 3, 6, 9, 12};
-    private static final float Y_MAX = 12f;
+    private float[] yAxisLabels;
+    private float maxYValue = 12f;
 
     private Paint barPaint;
     private Paint gridPaint;
@@ -78,6 +78,8 @@ public class WeekBarChartView extends View {
         textPaint.setAntiAlias(true);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
+        // 初始化默认的纵坐标刻度
+        calculateYAxisLabels(12f);
         updatePaddings();
     }
 
@@ -87,8 +89,10 @@ public class WeekBarChartView extends View {
         labelPaint.setAntiAlias(true);
 
         float maxLabelWidth = 0;
-        for (float label : Y_LABELS) {
-            maxLabelWidth = Math.max(maxLabelWidth, labelPaint.measureText(String.valueOf((int) label)));
+        if (yAxisLabels != null) {
+            for (float label : yAxisLabels) {
+                maxLabelWidth = Math.max(maxLabelWidth, labelPaint.measureText(String.valueOf((int) label) + "h"));
+            }
         }
 
         paddingLeft = (int) maxLabelWidth + dpToPx(12);
@@ -97,12 +101,54 @@ public class WeekBarChartView extends View {
         paddingBottom = dpToPx(28);
     }
 
+    private void calculateYAxisLabels(float maxHours) {
+        if (maxHours <= 3) {
+            maxYValue = 3f;
+            yAxisLabels = new float[]{0, 1, 2, 3};
+        } else if (maxHours <= 6) {
+            maxYValue = 6f;
+            yAxisLabels = new float[]{0, 2, 4, 6};
+        } else if (maxHours <= 9) {
+            maxYValue = 9f;
+            yAxisLabels = new float[]{0, 3, 6, 9};
+        } else if (maxHours <= 12) {
+            maxYValue = 12f;
+            yAxisLabels = new float[]{0, 3, 6, 9, 12};
+        } else if (maxHours <= 18) {
+            maxYValue = 18f;
+            yAxisLabels = new float[]{0, 6, 12, 18};
+        } else if (maxHours <= 24) {
+            maxYValue = 24f;
+            yAxisLabels = new float[]{0, 6, 12, 18, 24};
+        } else {
+            int step = maxHours <= 36 ? 6 : 12;
+            int count = (int) Math.ceil(maxHours / step);
+            maxYValue = count * step;
+            yAxisLabels = new float[count + 1];
+            for (int i = 0; i <= count; i++) {
+                yAxisLabels[i] = i * step;
+            }
+        }
+        updatePaddings();
+    }
+
     public void setData(List<DayData> data) {
         this.dayDataList = data != null ? data : new ArrayList<>();
         this.totalMinutes = 0;
+        
+        // 找出最大的单日时长（小时）
+        float maxDayHours = 0;
         for (DayData day : dayDataList) {
             totalMinutes += day.minutes;
+            float hours = day.minutes / 60f;
+            if (hours > maxDayHours) {
+                maxDayHours = hours;
+            }
         }
+        
+        // 根据最大时长动态计算纵坐标刻度
+        calculateYAxisLabels(maxDayHours);
+        
         invalidate();
     }
 
@@ -162,21 +208,24 @@ public class WeekBarChartView extends View {
     }
 
     private void drawGrid(Canvas canvas) {
-        for (float yLabel : Y_LABELS) {
-            float y = paddingTop + ((Y_MAX - yLabel) / Y_MAX) * chartHeight;
+        if (yAxisLabels == null) return;
+        for (float yLabel : yAxisLabels) {
+            float y = paddingTop + ((maxYValue - yLabel) / maxYValue) * chartHeight;
             canvas.drawLine(paddingLeft, y, getWidth() - paddingRight, y, gridPaint);
         }
     }
 
     private void drawYAxisLabels(Canvas canvas) {
+        if (yAxisLabels == null) return;
+        
         Paint labelPaint = new Paint();
         labelPaint.setColor(Color.parseColor("#666666"));
         labelPaint.setTextSize(spToPx(11));
         labelPaint.setAntiAlias(true);
         labelPaint.setTextAlign(Paint.Align.RIGHT);
 
-        for (float yLabel : Y_LABELS) {
-            float y = paddingTop + ((Y_MAX - yLabel) / Y_MAX) * chartHeight;
+        for (float yLabel : yAxisLabels) {
+            float y = paddingTop + ((maxYValue - yLabel) / maxYValue) * chartHeight;
             canvas.drawText(String.valueOf((int) yLabel) + "h", paddingLeft - dpToPx(6), y + dpToPx(4), labelPaint);
         }
     }
@@ -191,7 +240,7 @@ public class WeekBarChartView extends View {
 
         for (int i = 0; i < dayDataList.size(); i++) {
             DayData data = dayDataList.get(i);
-            float barHeight = (data.minutes / 60f / Y_MAX) * chartHeight;
+            float barHeight = (data.minutes / 60f / maxYValue) * chartHeight;
             float left = startX + i * (barWidth + barGap);
             float top = paddingTop + chartHeight - barHeight;
             float right = left + barWidth;

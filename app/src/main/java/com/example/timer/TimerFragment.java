@@ -51,6 +51,7 @@ public class TimerFragment extends Fragment {
     private long startTime = 0;
     private long elapsedTime = 0;
     private boolean isPaused = false;
+    private long firstStartTime = 0;  // 记录用户第一次点击开始计时的真实时间点
 
     private float buttonOffset = 0f;
     private static final int BUTTON_GAP = 200;
@@ -389,6 +390,10 @@ public class TimerFragment extends Fragment {
         isRunning = true;
         isPaused = false;
         startTime = System.currentTimeMillis() - elapsedTime;
+        // 只有在第一次开始计时时才记录真实开始时间
+        if (firstStartTime == 0) {
+            firstStartTime = startTime;
+        }
 
         runnable = new Runnable() {
             @Override
@@ -473,8 +478,8 @@ public class TimerFragment extends Fragment {
             SimpleDateFormat sdfDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
             String endStr = sdfDateTime.format(now);
 
-            int startMinutes = (int) (now.getTime() / 60000) - totalMinutes;
-            Date startDate = new Date(startMinutes * 60000L);
+            // 使用用户第一次点击开始计时的真实时间作为开始时间
+            Date startDate = new Date(firstStartTime);
             String startStr = sdfDateTime.format(startDate);
 
             TimerRecord record = new TimerRecord(finalName, startStr, endStr, totalMinutes + "分钟", totalMinutes);
@@ -483,6 +488,7 @@ public class TimerFragment extends Fragment {
             isRunning = false;
             isPaused = false;
             elapsedTime = 0;
+            firstStartTime = 0;  // 重置首次开始时间
             updateTimerDisplay();
             currentTimerName = "";
             updateNameButtonAppearance();
@@ -511,6 +517,7 @@ public class TimerFragment extends Fragment {
         isRunning = false;
         isPaused = false;
         elapsedTime = 0;
+        firstStartTime = 0;  // 重置首次开始时间
         updateTimerDisplay();
         currentTimerName = "";
         updateNameButtonAppearance();
