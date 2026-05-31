@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@color/bg_main"
+        android:orientation="horizontal"
+        android:paddingHorizontal="24dp"
+        android:gravity="center_vertical">
+
+        <LinearLayout
+            android:id="@+id/tab_timer"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tab_timer_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/timer"
+                android:textColor="@color/text_secondary"
+                android:textSize="17sp"
+                android:textStyle="bold"/>
+
+            <View
+                android:id="@+id/tab_timer_line"
+                android:layout_width="48dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/accent"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/tab_records"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tab_records_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/records"
+                android:textColor="@color/accent"
+                android:textSize="17sp"
+                android:textStyle="bold"/>
+
+            <View
+                android:id="@+id/tab_records_line"
+                android:layout_width="48dp"
+                android:layout_height="3dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/accent"
+                android:visibility="visible"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/view_pager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+</LinearLayout>
