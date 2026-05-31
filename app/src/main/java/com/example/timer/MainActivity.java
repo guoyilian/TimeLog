@@ -55,6 +55,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 updateTabSelection(position);
+                if (position == 1 && recordsFragment != null) {
+                    recordsFragment.refresh();
+                }
             }
 
             @Override

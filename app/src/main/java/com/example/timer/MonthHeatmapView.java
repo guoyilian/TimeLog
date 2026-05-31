@@ -26,7 +26,7 @@ public class MonthHeatmapView extends View {
     private static final int GRID_COLUMNS = 7;
     private static final int GRID_ROWS = 5;
     private static final int MAX_DAYS = 31;
-    private static final long RIPPLE_DURATION_MS = 1000L;
+    private static final long RIPPLE_DURATION_MS = 2000L;
     private static final long HIGHLIGHT_DURATION_MS = 500L;
 
     private final int[] dailyMinutes = new int[MAX_DAYS];
@@ -63,6 +63,9 @@ public class MonthHeatmapView extends View {
     private int rippleCol = -1;
     private float rippleProgress = 0f;
     private ValueAnimator rippleAnimator;
+
+    private int selectedRow = -1;
+    private int selectedCol = -1;
 
     private static class CellData {
         int row;
@@ -102,7 +105,7 @@ public class MonthHeatmapView extends View {
 
         titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         titlePaint.setColor(Color.parseColor("#5A7D5A"));
-        titlePaint.setTextSize(spToPx(18));
+        titlePaint.setTextSize(spToPx(14));
         titlePaint.setFakeBoldText(true);
         titlePaint.setTextAlign(Paint.Align.CENTER);
 
@@ -222,7 +225,7 @@ public class MonthHeatmapView extends View {
 
         Paint.FontMetrics weekdayMetrics = weekdayPaint.getFontMetrics();
         float weekdayBlockHeight = -weekdayMetrics.ascent + weekdayMetrics.descent;
-        float gridAreaTop = dpToPx(38) + weekdayBlockHeight + cellGap;
+        float gridAreaTop = dpToPx(48) + weekdayBlockHeight + cellGap;
         float gridAreaBottom = viewHeight - dpToPx(8);
         float availableGridHeight = gridAreaBottom - gridAreaTop;
         if (availableGridHeight <= 0) return;
@@ -265,8 +268,16 @@ public class MonthHeatmapView extends View {
             calculateGrid();
         }
 
-        String title = year + "年" + month + "月";
-        canvas.drawText(title, getWidth() / 2f, dpToPx(28), titlePaint);
+        int hours = totalMinutes / 60;
+        int mins = totalMinutes % 60;
+        String durationText;
+        if (hours > 0) {
+            durationText = hours + "小时" + mins + "分钟";
+        } else {
+            durationText = mins + "分钟";
+        }
+        String title = year + "年" + month + "月 总时长：" + durationText;
+        canvas.drawText(title, getWidth() / 2f, dpToPx(32), titlePaint);
 
         String[] weekdays = {"日", "一", "二", "三", "四", "五", "六"};
 
@@ -281,8 +292,14 @@ public class MonthHeatmapView extends View {
         drawLeftDayNumbers(canvas);
 
         for (CellData cell : cells) {
-            int baseColor = getColorForMinutes(cell.minutes);
-            cellPaint.setColor(applyHighlight(cell, baseColor));
+            boolean isSelected = cell.row == selectedRow && cell.col == selectedCol;
+            
+            if (isSelected) {
+                cellPaint.setColor(Color.BLACK);
+            } else {
+                int baseColor = getColorForMinutes(cell.minutes);
+                cellPaint.setColor(applyHighlight(cell, baseColor));
+            }
             canvas.drawRoundRect(cell.bounds, cellCornerRadius, cellCornerRadius, cellPaint);
 
             if (cell.day > 0) {
@@ -290,6 +307,12 @@ public class MonthHeatmapView extends View {
                 float centerY = cell.bounds.centerY();
                 Paint.FontMetrics dayMetrics = dayNumberPaint.getFontMetrics();
                 float dayBaseline = centerY - dayMetrics.ascent / 2 - dayMetrics.descent / 2;
+                
+                if (isSelected) {
+                    dayNumberPaint.setColor(Color.WHITE);
+                } else {
+                    dayNumberPaint.setColor(Color.parseColor("#333333"));
+                }
                 canvas.drawText(String.valueOf(cell.day), centerX, dayBaseline, dayNumberPaint);
             }
 
@@ -408,6 +431,7 @@ public class MonthHeatmapView extends View {
                     rippleCol = cell.col;
                     startHighlightAnimation();
                     startRippleAnimation();
+                    invalidate();
                     return true;
                 }
                 return false;
@@ -416,6 +440,8 @@ public class MonthHeatmapView extends View {
                 CellData touchedCell = findCellAt(x, y);
                 if (touchedCell != null && touchedCell.day > 0 &&
                     touchedCell.row == rippleRow && touchedCell.col == rippleCol) {
+                    selectedRow = touchedCell.row;
+                    selectedCol = touchedCell.col;
                     if (cellClickListener != null) {
                         cellClickListener.onCellClick(touchedCell.date, touchedCell.day, touchedCell.minutes);
                     }
@@ -444,6 +470,12 @@ public class MonthHeatmapView extends View {
         rippleRow = -1;
         rippleCol = -1;
         stopAllAnimations();
+        invalidate();
+    }
+
+    public void clearSelectedState() {
+        selectedRow = -1;
+        selectedCol = -1;
         invalidate();
     }
 

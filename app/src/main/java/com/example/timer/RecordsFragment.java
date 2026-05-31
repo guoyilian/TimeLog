@@ -125,6 +125,18 @@ public class RecordsFragment extends Fragment {
     }
 
     private void switchSubView(String view) {
+        if (dayAdapter != null) {
+            dayAdapter.closeAllSwipeItems();
+        }
+        
+        if (monthHeatmap != null) {
+            monthHeatmap.clearSelectedState();
+        }
+        
+        if (dayLineChart != null) {
+            dayLineChart.clearTouchState();
+        }
+        
         subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
         subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
         subTabDay.setSelected(view.equals("day"));

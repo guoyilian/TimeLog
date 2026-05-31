@@ -523,5 +523,16 @@ public class DayLineChartView extends View {
             touchedDataY = nearestY;
         }
     }
+
+    public void clearTouchState() {
+        isTouching = false;
+        isTooltipVisible = false;
+        touchedPoint = null;
+        touchX = 0;
+        touchY = 0;
+        touchedDataX = 0;
+        touchedDataY = 0;
+        invalidate();
+    }
 }
 
