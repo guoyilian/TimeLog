@@ -14,9 +14,12 @@ import java.util.List;
 
 public class DayLineChartView extends View {
 
-    private static final float X_AXIS_START = 5f;
-    private static final float X_AXIS_END = 24f;
-    private static final float X_AXIS_RANGE = X_AXIS_END - X_AXIS_START;
+    private static final float DEFAULT_X_AXIS_START = 5f;
+    private static final float DEFAULT_X_AXIS_END = 24f;
+
+    private float xAxisStart = DEFAULT_X_AXIS_START;
+    private float xAxisEnd = DEFAULT_X_AXIS_END;
+    private float xAxisRange = xAxisEnd - xAxisStart;
 
     private List<DataPoint> dataPoints = new ArrayList<>();
     private Paint linePaint;
@@ -31,8 +34,8 @@ public class DayLineChartView extends View {
     private Path linePath;
     private Path fillPath;
 
-    private static final float[] X_AXIS_LABEL_HOURS = {5f, 10f, 15f, 20f, 24f};
-    private static final String[] X_AXIS_LABELS = {"05:00", "10:00", "15:00", "20:00", "24:00"};
+    private float[] xAxisLabelHours = {5f, 10f, 15f, 20f, 24f};
+    private String[] xAxisLabels = {"05:00", "10:00", "15:00", "20:00", "24:00"};
 
     private float chartWidth;
     private float chartHeight;
@@ -159,8 +162,93 @@ public class DayLineChartView extends View {
 
     private void initEmptyData() {
         dataPoints.clear();
-        for (int hour = (int) X_AXIS_START; hour <= (int) X_AXIS_END; hour++) {
+        for (int hour = (int) xAxisStart; hour <= (int) xAxisEnd; hour++) {
             dataPoints.add(new DataPoint(hour, 0, "", String.format("%02d:00", hour)));
+        }
+    }
+
+    private void calculateDynamicXAxis(List<TimerRecord> records) {
+        if (records == null || records.isEmpty()) {
+            xAxisStart = DEFAULT_X_AXIS_START;
+            xAxisEnd = DEFAULT_X_AXIS_END;
+            xAxisRange = xAxisEnd - xAxisStart;
+            generateXAxisLabels();
+            return;
+        }
+
+        int minHour = 24;
+        int maxHour = 0;
+
+        for (TimerRecord record : records) {
+            String start = record.getStart();
+            String[] parts = start.split(" ");
+            if (parts.length >= 2) {
+                String timePart = parts[1];
+                String[] timeParts = timePart.split(":");
+                int startHour = Integer.parseInt(timeParts[0]);
+                int startMin = Integer.parseInt(timeParts[1]);
+
+                int duration = record.getDurationMin();
+                int endTotalMin = startHour * 60 + startMin + duration;
+                int endHour = endTotalMin / 60;
+                if (endTotalMin % 60 > 0) {
+                    endHour++;
+                }
+                endHour = Math.min(24, endHour);
+
+                minHour = Math.min(minHour, startHour);
+                maxHour = Math.max(maxHour, endHour);
+            }
+        }
+
+        if (minHour >= DEFAULT_X_AXIS_START && maxHour <= DEFAULT_X_AXIS_END) {
+            xAxisStart = DEFAULT_X_AXIS_START;
+            xAxisEnd = DEFAULT_X_AXIS_END;
+        } else {
+            int range = maxHour - minHour;
+            if (range < 5) {
+                range = 5;
+            }
+
+            int padding = Math.max(1, range / 5);
+            xAxisStart = Math.max(0, minHour - padding);
+            xAxisEnd = Math.min(24, maxHour + padding);
+
+            if (xAxisEnd - xAxisStart < 6) {
+                if (xAxisStart > 0) {
+                    xAxisStart = Math.max(0, xAxisEnd - 6);
+                } else {
+                    xAxisEnd = Math.min(24, xAxisStart + 6);
+                }
+            }
+        }
+
+        xAxisRange = xAxisEnd - xAxisStart;
+        generateXAxisLabels();
+    }
+
+    private void generateXAxisLabels() {
+        int range = (int) (xAxisEnd - xAxisStart);
+        int step;
+        if (range <= 6) {
+            step = 1;
+        } else if (range <= 12) {
+            step = 2;
+        } else if (range <= 18) {
+            step = 3;
+        } else {
+            step = 4;
+        }
+
+        int labelCount = range / step + 1;
+        xAxisLabelHours = new float[labelCount];
+        xAxisLabels = new String[labelCount];
+
+        int index = 0;
+        for (int hour = (int) xAxisStart; hour <= (int) xAxisEnd; hour += step) {
+            xAxisLabelHours[index] = hour;
+            xAxisLabels[index] = String.format("%02d:00", hour);
+            index++;
         }
     }
 
@@ -193,6 +281,8 @@ public class DayLineChartView extends View {
         dataPoints.clear();
         totalMinutes = 0;
 
+        calculateDynamicXAxis(records);
+
         float[] hourMinutes = new float[25];
         String[] hourLabels = new String[25];
         float maxTime = 0;
@@ -212,7 +302,7 @@ public class DayLineChartView extends View {
 
                     int endHour = Math.min(24, startHour + (duration / 60) + 1);
                     for (int h = startHour; h < endHour; h++) {
-                        if (h < X_AXIS_START || h > X_AXIS_END) {
+                        if (h < xAxisStart || h > xAxisEnd) {
                             continue;
                         }
                         hourMinutes[h] += duration;
@@ -233,7 +323,7 @@ public class DayLineChartView extends View {
 
         calculateYAxisLabels(maxTime);
 
-        for (int hour = (int) X_AXIS_START; hour <= (int) X_AXIS_END; hour++) {
+        for (int hour = (int) xAxisStart; hour <= (int) xAxisEnd; hour++) {
             float minutes = hourMinutes[hour];
             String timeLabel = String.format("%02d:00", hour);
             String label = hourLabels[hour];
@@ -247,7 +337,7 @@ public class DayLineChartView extends View {
     }
 
     private float hourToX(float hour) {
-        float normalized = (hour - X_AXIS_START) / X_AXIS_RANGE;
+        float normalized = (hour - xAxisStart) / xAxisRange;
         return plotLeft + normalized * plotWidth;
     }
 
@@ -334,17 +424,17 @@ public class DayLineChartView extends View {
     private void drawXAxisLabels(Canvas canvas) {
         float y = paddingTop + chartHeight + dpToPx(16);
 
-        for (int i = 0; i < X_AXIS_LABELS.length; i++) {
-            float hour = X_AXIS_LABEL_HOURS[i];
+        for (int i = 0; i < xAxisLabels.length; i++) {
+            float hour = xAxisLabelHours[i];
             if (i == 0) {
                 xTextPaint.setTextAlign(Paint.Align.LEFT);
-                canvas.drawText(X_AXIS_LABELS[i], plotLeft, y, xTextPaint);
-            } else if (i == X_AXIS_LABELS.length - 1) {
+                canvas.drawText(xAxisLabels[i], plotLeft, y, xTextPaint);
+            } else if (i == xAxisLabels.length - 1) {
                 xTextPaint.setTextAlign(Paint.Align.RIGHT);
-                canvas.drawText(X_AXIS_LABELS[i], plotRight, y, xTextPaint);
+                canvas.drawText(xAxisLabels[i], plotRight, y, xTextPaint);
             } else {
                 xTextPaint.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(X_AXIS_LABELS[i], hourToX(hour), y, xTextPaint);
+                canvas.drawText(xAxisLabels[i], hourToX(hour), y, xTextPaint);
             }
         }
         xTextPaint.setTextAlign(Paint.Align.CENTER);
