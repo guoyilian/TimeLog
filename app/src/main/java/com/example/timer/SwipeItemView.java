@@ -25,7 +25,7 @@ public class SwipeItemView extends FrameLayout {
     private OnSwipeStateChangeListener swipeStateChangeListener;
 
     public interface OnDeleteClickListener {
-        void onDeleteClick(int position);
+        void onDeleteClick();
     }
 
     public interface OnSwipeStateChangeListener {
@@ -61,14 +61,12 @@ public class SwipeItemView extends FrameLayout {
         return dp * getContext().getResources().getDisplayMetrics().density;
     }
 
-    public void setOnDeleteClickListener(OnDeleteClickListener listener, int position) {
+    public void setOnDeleteClickListener(OnDeleteClickListener listener) {
         this.deleteClickListener = listener;
         if (deleteBtn != null) {
-            deleteBtn.setTag(position);
             deleteBtn.setOnClickListener(v -> {
                 if (deleteClickListener != null) {
-                    int pos = (int) v.getTag();
-                    deleteClickListener.onDeleteClick(pos);
+                    deleteClickListener.onDeleteClick();
                 }
             });
         }
@@ -165,8 +163,7 @@ public class SwipeItemView extends FrameLayout {
                     animateButtonPress(deleteBtn);
                 }
                 if (deleteClickListener != null) {
-                    int position = deleteBtn != null ? (int) deleteBtn.getTag() : -1;
-                    deleteClickListener.onDeleteClick(position);
+                    deleteClickListener.onDeleteClick();
                     animateToX(0);
                     isSwipeOpen = false;
                     if (swipeStateChangeListener != null) {

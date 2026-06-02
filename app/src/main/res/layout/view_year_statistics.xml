@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:id="@+id/year_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2026年 · 年度总览"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#5A7D5A"/>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="8dp">
+
+            <TextView
+                android:id="@+id/total_days"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="累计计时 0天"
+                android:textSize="14sp"
+                android:textColor="#666666"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="  |  "
+                android:textSize="14sp"
+                android:textColor="#666666"/>
+
+            <TextView
+                android:id="@+id/total_hours"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="总计 0小时0分钟"
+                android:textSize="14sp"
+                android:textColor="#666666"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.example.timer.YearHeatmapView
+        android:id="@+id/year_heatmap"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="16dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="选择年份"
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:layout_marginBottom="8dp"/>
+
+        <Spinner
+            android:id="@+id/year_spinner"
+            android:layout_width="160dp"
+            android:layout_height="40dp"
+            android:spinnerMode="dropdown"/>
+
+    </LinearLayout>
+
+</LinearLayout>

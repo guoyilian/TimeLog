@@ -86,16 +86,30 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
             end = end.split(" ")[1];
         }
         holder.timeRange.setText(start + " - " + end);
-        holder.duration.setText(record.getDuration());
+        int minutes = record.getDurationMin();
+        int hours = minutes / 60;
+        int mins = minutes % 60;
+        if (hours > 0) {
+            holder.duration.setText(hours + "小时" + mins + "分钟");
+        } else {
+            holder.duration.setText(mins + "分钟");
+        }
 
         holder.dot.setBackgroundColor(position == 0 ? accentColor : accentLightColor);
 
-        holder.swipeItemView.setOnDeleteClickListener((pos) -> {
+        holder.swipeItemView.setOnDeleteClickListener(() -> {
             if (deleteListener != null) {
-                deleteListener.onItemDelete(pos);
+                int currentPos = holder.getAdapterPosition();
+                if (currentPos == -1) {
+                    currentPos = holder.currentPosition;
+                }
+                if (currentPos >= 0 && currentPos < records.size()) {
+                    deleteListener.onItemDelete(currentPos);
+                }
             }
-        }, position);
+        });
 
+        holder.currentPosition = position;
         holder.swipeItemView.setOnSwipeStateChangeListener(this);
     }
 
@@ -133,6 +147,7 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
         TextView duration;
         View dot;
         SwipeItemView swipeItemView;
+        int currentPosition = -1;
 
         ViewHolder(View itemView) {
             super(itemView);

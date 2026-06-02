@@ -42,4 +42,7 @@
     <color name="heatmap_subtitle_text">#999999</color>
     <color name="heatmap_footer_text">#333333</color>
     <color name="heatmap_weekday_text">#333333</color>
+    
+    <color name="grey_light">#F5F5F5</color>
+    <color name="divider">#E8E8E8</color>
 </resources>

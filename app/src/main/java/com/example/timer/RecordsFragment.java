@@ -22,18 +22,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.view.ViewPropertyAnimator;
 
 public class RecordsFragment extends Fragment {
     private DataManager dataManager;
     private RecyclerView dayTimelineList;
     private LinearLayout weekTimelineList;
     private TextView listHeader, chartListHeader;
-    private View weekChartCard, monthHeatmapCard;
+    private View weekChartCard, monthHeatmapCard, yearHeatmapCard;
     private LinearLayout viewDay, viewChart;
-    private Button subTabDay, subTabWeek, subTabMonth;
+    private Button subTabDay, subTabWeek, subTabMonth, subTabYear;
     private DayLineChartView dayLineChart;
     private WeekBarChartView weekBarChart;
     private MonthHeatmapView monthHeatmap;
+    private YearStatisticsView yearStatisticsView;
     private DayRecordsAdapter dayAdapter;
 
     @Override
@@ -66,7 +70,6 @@ public class RecordsFragment extends Fragment {
                         }
                     })
                     .setNegativeButton("取消", (d, which) -> {
-                        // 取消时关闭当前滑动的列表项
                         dayAdapter.closeSwipeItemAtPosition(position);
                     })
                     .create();
@@ -83,6 +86,7 @@ public class RecordsFragment extends Fragment {
         viewChart = view.findViewById(R.id.view_chart);
         weekChartCard = view.findViewById(R.id.week_chart_card);
         monthHeatmapCard = view.findViewById(R.id.month_heatmap_card);
+        yearHeatmapCard = view.findViewById(R.id.year_heatmap_card);
 
         viewDay.setOnTouchListener((v, event) -> {
             dayAdapter.closeAllSwipeItems();
@@ -92,18 +96,27 @@ public class RecordsFragment extends Fragment {
         subTabDay = view.findViewById(R.id.sub_tab_day);
         subTabWeek = view.findViewById(R.id.sub_tab_week);
         subTabMonth = view.findViewById(R.id.sub_tab_month);
+        subTabYear = view.findViewById(R.id.sub_tab_year);
 
         dayLineChart = view.findViewById(R.id.day_line_chart);
         weekBarChart = view.findViewById(R.id.week_bar_chart);
         monthHeatmap = view.findViewById(R.id.month_heatmap);
+        yearStatisticsView = view.findViewById(R.id.year_statistics_view);
 
         if (monthHeatmap != null) {
             monthHeatmap.setOnCellClickListener((date, day, minutes) -> showMonthDayDetail(date, minutes));
         }
 
+        if (yearStatisticsView != null) {
+            yearStatisticsView.setOnMonthClickListener((year, month) -> {
+                switchSubView("month", year, month, true);
+            });
+        }
+
         subTabDay.setOnClickListener(v -> switchSubView("day"));
         subTabWeek.setOnClickListener(v -> switchSubView("week"));
         subTabMonth.setOnClickListener(v -> switchSubView("month"));
+        subTabYear.setOnClickListener(v -> switchSubView("year"));
 
         switchSubView("day");
 
@@ -120,23 +133,39 @@ public class RecordsFragment extends Fragment {
         if (viewChart.getVisibility() == View.VISIBLE) {
             if (subTabWeek.isSelected()) return "week";
             if (subTabMonth.isSelected()) return "month";
+            if (subTabYear.isSelected()) return "year";
         }
         return "day";
     }
 
     private void switchSubView(String view) {
+        switchSubView(view, -1, -1, false);
+    }
+
+    private void switchSubView(String view, int year, int month) {
+        switchSubView(view, year, month, false);
+    }
+
+    private static final long ANIMATION_DURATION = 300;
+    private boolean isAnimating = false;
+
+    private void switchSubView(String view, int year, int month, boolean withAnimation) {
+        if (isAnimating) {
+            return;
+        }
+
         if (dayAdapter != null) {
             dayAdapter.closeAllSwipeItems();
         }
-        
+
         if (monthHeatmap != null) {
             monthHeatmap.clearSelectedState();
         }
-        
+
         if (dayLineChart != null) {
             dayLineChart.clearTouchState();
         }
-        
+
         subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
         subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
         subTabDay.setSelected(view.equals("day"));
@@ -149,25 +178,121 @@ public class RecordsFragment extends Fragment {
         subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
         subTabMonth.setSelected(view.equals("month"));
 
-        viewDay.setVisibility(View.GONE);
-        viewChart.setVisibility(View.GONE);
+        subTabYear.setBackgroundResource(view.equals("year") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
+        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabYear.setSelected(view.equals("year"));
 
-        if (view.equals("day")) {
-            viewDay.setVisibility(View.VISIBLE);
-            updateDayView();
-        } else if (view.equals("week")) {
-            viewChart.setVisibility(View.VISIBLE);
-            weekChartCard.setVisibility(View.VISIBLE);
-            monthHeatmapCard.setVisibility(View.GONE);
-            renderWeekChart();
-            renderWeekList();
-        } else if (view.equals("month")) {
-            viewChart.setVisibility(View.VISIBLE);
-            weekChartCard.setVisibility(View.GONE);
-            monthHeatmapCard.setVisibility(View.VISIBLE);
-            renderMonthHeatmap();
-            clearMonthDayList();
+        View currentView = viewDay.getVisibility() == View.VISIBLE ? viewDay : viewChart;
+        
+        if (withAnimation) {
+            isAnimating = true;
+            currentView.animate()
+                    .alpha(0f)
+                    .translationX(-50)
+                    .setDuration(ANIMATION_DURATION)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            currentView.setVisibility(View.GONE);
+                            currentView.setAlpha(1f);
+                            currentView.setTranslationX(0);
+                            
+                            showNewViewWithAnimation(view, year, month);
+                        }
+                    });
+        } else {
+            currentView.setVisibility(View.GONE);
+            showNewViewWithoutAnimation(view, year, month);
         }
+    }
+
+    private void showNewViewWithAnimation(String view, int year, int month) {
+        View newView;
+        
+        if (view.equals("day")) {
+            newView = viewDay;
+            updateDayView();
+        } else {
+            newView = viewChart;
+            
+            if (view.equals("week")) {
+                weekChartCard.setVisibility(View.VISIBLE);
+                monthHeatmapCard.setVisibility(View.GONE);
+                yearHeatmapCard.setVisibility(View.GONE);
+                renderWeekChart();
+                renderWeekList();
+            } else if (view.equals("month")) {
+                weekChartCard.setVisibility(View.GONE);
+                monthHeatmapCard.setVisibility(View.VISIBLE);
+                yearHeatmapCard.setVisibility(View.GONE);
+                if (year > 0 && month >= 0) {
+                    renderMonthHeatmap(year, month);
+                } else {
+                    renderMonthHeatmap();
+                }
+                clearMonthDayList();
+            } else if (view.equals("year")) {
+                weekChartCard.setVisibility(View.GONE);
+                monthHeatmapCard.setVisibility(View.GONE);
+                yearHeatmapCard.setVisibility(View.VISIBLE);
+                renderYearHeatmap();
+                clearMonthDayList();
+            }
+        }
+
+        newView.setAlpha(0f);
+        newView.setTranslationX(50);
+        newView.setVisibility(View.VISIBLE);
+
+        newView.animate()
+                .alpha(1f)
+                .translationX(0)
+                .setDuration(ANIMATION_DURATION)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        isAnimating = false;
+                    }
+                });
+    }
+
+    private void showNewViewWithoutAnimation(String view, int year, int month) {
+        View newView;
+        
+        if (view.equals("day")) {
+            newView = viewDay;
+            updateDayView();
+        } else {
+            newView = viewChart;
+            
+            if (view.equals("week")) {
+                weekChartCard.setVisibility(View.VISIBLE);
+                monthHeatmapCard.setVisibility(View.GONE);
+                yearHeatmapCard.setVisibility(View.GONE);
+                renderWeekChart();
+                renderWeekList();
+            } else if (view.equals("month")) {
+                weekChartCard.setVisibility(View.GONE);
+                monthHeatmapCard.setVisibility(View.VISIBLE);
+                yearHeatmapCard.setVisibility(View.GONE);
+                if (year > 0 && month >= 0) {
+                    renderMonthHeatmap(year, month);
+                } else {
+                    renderMonthHeatmap();
+                }
+                clearMonthDayList();
+            } else if (view.equals("year")) {
+                weekChartCard.setVisibility(View.GONE);
+                monthHeatmapCard.setVisibility(View.GONE);
+                yearHeatmapCard.setVisibility(View.VISIBLE);
+                renderYearHeatmap();
+                clearMonthDayList();
+            }
+        }
+
+        newView.setAlpha(1f);
+        newView.setTranslationX(0);
+        newView.setVisibility(View.VISIBLE);
     }
 
     private void updateDayView() {
@@ -238,12 +363,22 @@ public class RecordsFragment extends Fragment {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.DAY_OF_MONTH, 1);
         int year = cal.get(Calendar.YEAR);
-        int month = cal.get(Calendar.MONTH) + 1;
+        int month = cal.get(Calendar.MONTH);
+        renderMonthHeatmap(year, month);
+    }
+
+    private void renderMonthHeatmap(int year, int month) {
+        if (monthHeatmap == null) return;
+
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month, 1);
+        int displayYear = cal.get(Calendar.YEAR);
+        int displayMonth = cal.get(Calendar.MONTH) + 1;
         int firstDayOfWeek = MonthHeatmapView.getMondayBasedDayOfWeek(cal);
 
         int[] dailyMinutes = new int[31];
         List<TimerRecord> allRecords = dataManager.getRecords();
-        String monthPrefix = new SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(cal.getTime());
+        String monthPrefix = String.format("%04d-%02d", displayYear, displayMonth);
 
         for (TimerRecord record : allRecords) {
             if (record.getStart().startsWith(monthPrefix)) {
@@ -255,7 +390,7 @@ public class RecordsFragment extends Fragment {
             }
         }
 
-        monthHeatmap.setMonthData(dailyMinutes, firstDayOfWeek, year, month);
+        monthHeatmap.setMonthData(dailyMinutes, firstDayOfWeek, displayYear, displayMonth);
     }
 
     private void clearMonthDayList() {
@@ -264,6 +399,12 @@ public class RecordsFragment extends Fragment {
         }
         if (chartListHeader != null) {
             chartListHeader.setVisibility(View.GONE);
+        }
+    }
+
+    private void renderYearHeatmap() {
+        if (yearStatisticsView != null) {
+            yearStatisticsView.updateData(dataManager.getRecords());
         }
     }
 

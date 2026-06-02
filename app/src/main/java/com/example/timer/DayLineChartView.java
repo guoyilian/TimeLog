@@ -14,7 +14,7 @@ import java.util.List;
 
 public class DayLineChartView extends View {
 
-    private static final float DEFAULT_X_AXIS_START = 5f;
+    private static final float DEFAULT_X_AXIS_START = 0f;
     private static final float DEFAULT_X_AXIS_END = 24f;
 
     private float xAxisStart = DEFAULT_X_AXIS_START;
@@ -34,8 +34,8 @@ public class DayLineChartView extends View {
     private Path linePath;
     private Path fillPath;
 
-    private float[] xAxisLabelHours = {5f, 10f, 15f, 20f, 24f};
-    private String[] xAxisLabels = {"05:00", "10:00", "15:00", "20:00", "24:00"};
+    private float[] xAxisLabelHours = {0f, 6f, 12f, 18f, 24f};
+    private String[] xAxisLabels = {"00:00", "06:00", "12:00", "18:00", "24:00"};
 
     private float chartWidth;
     private float chartHeight;
@@ -167,91 +167,6 @@ public class DayLineChartView extends View {
         }
     }
 
-    private void calculateDynamicXAxis(List<TimerRecord> records) {
-        if (records == null || records.isEmpty()) {
-            xAxisStart = DEFAULT_X_AXIS_START;
-            xAxisEnd = DEFAULT_X_AXIS_END;
-            xAxisRange = xAxisEnd - xAxisStart;
-            generateXAxisLabels();
-            return;
-        }
-
-        int minHour = 24;
-        int maxHour = 0;
-
-        for (TimerRecord record : records) {
-            String start = record.getStart();
-            String[] parts = start.split(" ");
-            if (parts.length >= 2) {
-                String timePart = parts[1];
-                String[] timeParts = timePart.split(":");
-                int startHour = Integer.parseInt(timeParts[0]);
-                int startMin = Integer.parseInt(timeParts[1]);
-
-                int duration = record.getDurationMin();
-                int endTotalMin = startHour * 60 + startMin + duration;
-                int endHour = endTotalMin / 60;
-                if (endTotalMin % 60 > 0) {
-                    endHour++;
-                }
-                endHour = Math.min(24, endHour);
-
-                minHour = Math.min(minHour, startHour);
-                maxHour = Math.max(maxHour, endHour);
-            }
-        }
-
-        if (minHour >= DEFAULT_X_AXIS_START && maxHour <= DEFAULT_X_AXIS_END) {
-            xAxisStart = DEFAULT_X_AXIS_START;
-            xAxisEnd = DEFAULT_X_AXIS_END;
-        } else {
-            int range = maxHour - minHour;
-            if (range < 5) {
-                range = 5;
-            }
-
-            int padding = Math.max(1, range / 5);
-            xAxisStart = Math.max(0, minHour - padding);
-            xAxisEnd = Math.min(24, maxHour + padding);
-
-            if (xAxisEnd - xAxisStart < 6) {
-                if (xAxisStart > 0) {
-                    xAxisStart = Math.max(0, xAxisEnd - 6);
-                } else {
-                    xAxisEnd = Math.min(24, xAxisStart + 6);
-                }
-            }
-        }
-
-        xAxisRange = xAxisEnd - xAxisStart;
-        generateXAxisLabels();
-    }
-
-    private void generateXAxisLabels() {
-        int range = (int) (xAxisEnd - xAxisStart);
-        int step;
-        if (range <= 6) {
-            step = 1;
-        } else if (range <= 12) {
-            step = 2;
-        } else if (range <= 18) {
-            step = 3;
-        } else {
-            step = 4;
-        }
-
-        int labelCount = range / step + 1;
-        xAxisLabelHours = new float[labelCount];
-        xAxisLabels = new String[labelCount];
-
-        int index = 0;
-        for (int hour = (int) xAxisStart; hour <= (int) xAxisEnd; hour += step) {
-            xAxisLabelHours[index] = hour;
-            xAxisLabels[index] = String.format("%02d:00", hour);
-            index++;
-        }
-    }
-
     private void calculateYAxisLabels(float maxTime) {
         if (maxTime <= 15) {
             maxYValue = 15f;
@@ -280,8 +195,6 @@ public class DayLineChartView extends View {
     public void setData(List<TimerRecord> records) {
         dataPoints.clear();
         totalMinutes = 0;
-
-        calculateDynamicXAxis(records);
 
         float[] hourMinutes = new float[25];
         String[] hourLabels = new String[25];
