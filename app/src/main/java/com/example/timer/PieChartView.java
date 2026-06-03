@@ -149,16 +149,18 @@ public class PieChartView extends View {
             // 绘制标签（名称 + 百分比）
             String label = String.format("%.0f%%", slice.percentage);
             textPaint.setColor(0xFFFFFFFF);
-            textPaint.setTextSize(spToPx(12));  // 增大字体
+            textPaint.setTextSize(spToPx(11));
             textPaint.setTextAlign(Paint.Align.CENTER);
             
-            canvas.drawText(label, labelX, labelY, textPaint);
-            
-            // 如果名称较短，也显示名称
-            if (slice.name.length() <= 4) {
-                textPaint.setTextSize(spToPx(10));  // 增大字体
-                canvas.drawText(slice.name, labelX, labelY + spToPx(14), textPaint);
+            // 处理过长的名称，最多显示4个字符，超出部分用省略号
+            String displayName = slice.name;
+            if (slice.name.length() > 4) {
+                displayName = slice.name.substring(0, 4) + "…";
             }
+            
+            // 先绘制名称，再绘制百分比
+            canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
+            canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
             
             startAngle += sweepAngle;
             colorIndex++;

@@ -174,8 +174,8 @@ public class SwipeItemView extends FrameLayout {
             }
         }
 
-        if (!isSwipeGesture && !isHorizontalGesture) {
-            return super.onTouchEvent(event);
+        if (!isSwipeGesture && !isHorizontalGesture && !isSwipeOpen) {
+            return false;
         }
 
         getParent().requestDisallowInterceptTouchEvent(true);
@@ -244,5 +244,9 @@ public class SwipeItemView extends FrameLayout {
             view.setScaleY(scale);
         });
         animator.start();
+    }
+
+    public boolean isSwiping() {
+        return isSwipeGesture || isHorizontalGesture;
     }
 }

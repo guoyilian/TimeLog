@@ -1,5 +1,7 @@
 package com.example.timer;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +19,13 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
         void onItemDelete(int position);
     }
 
+    public interface OnItemNameClickListener {
+        void onItemNameClick(int position, TimerRecord record);
+    }
+
     private List<TimerRecord> records = new ArrayList<>();
     private OnItemDeleteListener deleteListener;
+    private OnItemNameClickListener nameClickListener;
     private int accentColor;
     private int accentLightColor;
     private SwipeItemView lastOpenSwipeItem = null;
@@ -30,6 +37,10 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
 
     public void setOnItemDeleteListener(OnItemDeleteListener listener) {
         this.deleteListener = listener;
+    }
+
+    public void setOnItemNameClickListener(OnItemNameClickListener listener) {
+        this.nameClickListener = listener;
     }
 
     public void setRecords(List<TimerRecord> records) {
@@ -96,6 +107,22 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
         }
 
         holder.dot.setBackgroundColor(position == 0 ? accentColor : accentLightColor);
+
+        holder.name.setOnClickListener(v -> {
+            if (nameClickListener != null && !holder.swipeItemView.isSwiping()) {
+                final int originalColor = holder.name.getCurrentTextColor();
+                holder.name.setTextColor(0xFF81C784);
+                
+                final int currentPos = holder.getAdapterPosition() == -1 ? holder.currentPosition : holder.getAdapterPosition();
+                
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    holder.name.setTextColor(originalColor);
+                    if (currentPos >= 0 && currentPos < records.size()) {
+                        nameClickListener.onItemNameClick(currentPos, records.get(currentPos));
+                    }
+                }, 300);
+            }
+        });
 
         holder.swipeItemView.setOnDeleteClickListener(() -> {
             if (deleteListener != null) {

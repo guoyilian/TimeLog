@@ -60,4 +60,16 @@ public class DataManager {
         }
         saveRecords(records);
     }
+
+    public void updateRecord(TimerRecord updatedRecord) {
+        List<TimerRecord> records = getRecords();
+        for (int i = 0; i < records.size(); i++) {
+            TimerRecord r = records.get(i);
+            if (r.getId() != null && r.getId().equals(updatedRecord.getId())) {
+                records.set(i, updatedRecord);
+                break;
+            }
+        }
+        saveRecords(records);
+    }
 }
