@@ -307,6 +307,7 @@ public class RecordsFragment extends Fragment {
                 weekChartCard.setVisibility(View.GONE);
                 monthHeatmapCard.setVisibility(View.GONE);
                 yearHeatmapCard.setVisibility(View.VISIBLE);
+                chartTaskStatsCard.setVisibility(View.GONE);
                 renderYearHeatmap();
                 clearMonthDayList();
             }
@@ -359,6 +360,7 @@ public class RecordsFragment extends Fragment {
                 weekChartCard.setVisibility(View.GONE);
                 monthHeatmapCard.setVisibility(View.GONE);
                 yearHeatmapCard.setVisibility(View.VISIBLE);
+                chartTaskStatsCard.setVisibility(View.GONE);
                 renderYearHeatmap();
                 clearMonthDayList();
             }
