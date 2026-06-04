@@ -5,7 +5,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ public class WeekBarChartView extends View {
     private Paint textPaint;
 
     private List<DayData> dayDataList = new ArrayList<>();
+    private List<RectF> barBoundsList = new ArrayList<>();
     private int totalMinutes = 0;
 
     private int paddingLeft;
@@ -31,15 +34,28 @@ public class WeekBarChartView extends View {
     private int chartWidth;
     private int chartHeight;
 
+    private OnBarClickListener onBarClickListener;
+
+    // 点击交互效果相关
+    private int touchedBarIndex = -1; // 记录当前按下的柱子索引
+    private Paint pressedBarPaint; // 按下状态的画笔
+    private static final int PRESS_EXPAND_DP = 3; // 按下时柱子的扩展大小
+
+    public interface OnBarClickListener {
+        void onBarClick(DayData dayData, int index);
+    }
+
     public static class DayData {
         public String dayOfWeek;
         public String date;
+        public String fullDate; // 完整日期字符串 yyyy-MM-dd
         public int minutes;
         public String taskType;
 
-        public DayData(String dayOfWeek, String date, int minutes, String taskType) {
+        public DayData(String dayOfWeek, String date, String fullDate, int minutes, String taskType) {
             this.dayOfWeek = dayOfWeek;
             this.date = date;
+            this.fullDate = fullDate;
             this.minutes = minutes;
             this.taskType = taskType;
         }
@@ -60,11 +76,25 @@ public class WeekBarChartView extends View {
         init();
     }
 
+    public void setOnBarClickListener(OnBarClickListener listener) {
+        this.onBarClickListener = listener;
+    }
+
+    public void clearTouchState() {
+        touchedBarIndex = -1;
+        invalidate();
+    }
+
     private void init() {
         barPaint = new Paint();
         barPaint.setColor(Color.parseColor("#6A9974"));
         barPaint.setStyle(Paint.Style.FILL);
         barPaint.setAntiAlias(true);
+
+        pressedBarPaint = new Paint();
+        pressedBarPaint.setColor(Color.parseColor("#4A7D5A")); // 更深的颜色
+        pressedBarPaint.setStyle(Paint.Style.FILL);
+        pressedBarPaint.setAntiAlias(true);
 
         gridPaint = new Paint();
         gridPaint.setColor(Color.parseColor("#EEEEEE"));
@@ -235,24 +265,116 @@ public class WeekBarChartView extends View {
 
         int barWidth = dpToPx(24);
         int barGap = dpToPx(8);
+        int pressExpand = dpToPx(PRESS_EXPAND_DP);
         int totalBarWidth = dayDataList.size() * barWidth + (dayDataList.size() - 1) * barGap;
         int startX = paddingLeft + (chartWidth - totalBarWidth) / 2;
+
+        barBoundsList.clear();
 
         for (int i = 0; i < dayDataList.size(); i++) {
             DayData data = dayDataList.get(i);
             float barHeight = (data.minutes / 60f / maxYValue) * chartHeight;
-            float left = startX + i * (barWidth + barGap);
-            float top = paddingTop + chartHeight - barHeight;
-            float right = left + barWidth;
-            float bottom = paddingTop + chartHeight;
+            
+            float left, top, right, bottom;
+            Paint paint;
+            
+            // 判断当前柱子是否被按下
+            if (touchedBarIndex == i) {
+                // 按下状态：扩展大小，使用深色
+                left = startX + i * (barWidth + barGap) - pressExpand;
+                top = paddingTop + chartHeight - barHeight - pressExpand;
+                right = left + barWidth + pressExpand * 2;
+                bottom = paddingTop + chartHeight + pressExpand;
+                paint = pressedBarPaint;
+            } else {
+                // 正常状态
+                left = startX + i * (barWidth + barGap);
+                top = paddingTop + chartHeight - barHeight;
+                right = left + barWidth;
+                bottom = paddingTop + chartHeight;
+                paint = barPaint;
+            }
+
+            RectF barBounds = new RectF(startX + i * (barWidth + barGap), paddingTop, 
+                    startX + i * (barWidth + barGap) + barWidth, bottom);
+            barBoundsList.add(barBounds);
 
             if (barHeight > 0) {
-                drawRoundTopBar(canvas, left, top, right, bottom, barWidth / 2f);
+                float radius = (touchedBarIndex == i ? barWidth + pressExpand * 2 : barWidth) / 2f;
+                drawRoundTopBar(canvas, left, top, right, bottom, radius, paint);
             }
         }
     }
 
-    private void drawRoundTopBar(Canvas canvas, float left, float top, float right, float bottom, float radius) {
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int action = event.getAction();
+        float x = event.getX();
+        float y = event.getY();
+
+        // 查找当前点击位置对应的柱子索引
+        int clickedBarIndex = -1;
+        for (int i = 0; i < barBoundsList.size(); i++) {
+            RectF bounds = barBoundsList.get(i);
+            if (bounds.contains(x, y)) {
+                clickedBarIndex = i;
+                break;
+            }
+        }
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                if (clickedBarIndex != -1) {
+                    touchedBarIndex = clickedBarIndex;
+                    invalidate(); // 重绘显示按下状态
+                    return true; // 消费这个事件，继续接收后续事件
+                }
+                break;
+
+            case MotionEvent.ACTION_MOVE:
+                // 如果手指移出了当前按下的柱子，恢复原状
+                if (touchedBarIndex != -1 && touchedBarIndex != clickedBarIndex) {
+                    touchedBarIndex = -1;
+                    invalidate();
+                }
+                break;
+
+            case MotionEvent.ACTION_UP:
+                if (touchedBarIndex != -1 && clickedBarIndex == touchedBarIndex) {
+                    // 手指在同一根柱子上抬起，执行回调
+                    final int finalIndex = touchedBarIndex;
+                    final DayData finalData = dayDataList.get(finalIndex);
+                    
+                    // 先恢复原状
+                    touchedBarIndex = -1;
+                    invalidate();
+                    
+                    // 延迟一小段时间后执行回调，确保交互效果完成
+                    postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (onBarClickListener != null) {
+                                onBarClickListener.onBarClick(finalData, finalIndex);
+                            }
+                        }
+                    }, 100);
+                } else {
+                    touchedBarIndex = -1;
+                    invalidate();
+                }
+                return true;
+
+            case MotionEvent.ACTION_CANCEL:
+                // 取消事件，恢复原状
+                touchedBarIndex = -1;
+                invalidate();
+                return true;
+        }
+
+        return super.onTouchEvent(event);
+    }
+
+    private void drawRoundTopBar(Canvas canvas, float left, float top, float right, float bottom, float radius, Paint paint) {
         Path path = new Path();
         path.moveTo(left, bottom);
         path.lineTo(left, top + radius);
@@ -261,7 +383,7 @@ public class WeekBarChartView extends View {
         path.quadTo(right, top, right, top + radius);
         path.lineTo(right, bottom);
         path.close();
-        canvas.drawPath(path, barPaint);
+        canvas.drawPath(path, paint);
     }
 
     private void drawXAxisLabels(Canvas canvas) {

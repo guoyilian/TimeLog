@@ -44,7 +44,7 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
     }
 
     public void setRecords(List<TimerRecord> records) {
-        this.records = records;
+        this.records = new ArrayList<>(records);
         notifyDataSetChanged();
     }
 

@@ -34,7 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class TimerFragment extends Fragment {
-    private TextView timerMinutes, timerSeconds, timerMilliseconds;
+    private TextView timerHours, timerMinutes, timerSeconds;
     private LinearLayout timerName;
     private TextView timerNameText;
     private LinearLayout btnPlayPause, btnStop, btnReset;
@@ -72,9 +72,9 @@ public class TimerFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_timer, container, false);
 
+        timerHours = view.findViewById(R.id.timer_hours);
         timerMinutes = view.findViewById(R.id.timer_minutes);
         timerSeconds = view.findViewById(R.id.timer_seconds);
-        timerMilliseconds = view.findViewById(R.id.timer_milliseconds);
 
         timerName = view.findViewById(R.id.timer_name);
         timerNameText = view.findViewById(R.id.timer_name_text);
@@ -398,7 +398,7 @@ public class TimerFragment extends Fragment {
         runnable = new Runnable() {
             @Override
             public void run() {
-                if (isRunning && timerMinutes != null) {
+                if (isRunning && timerHours != null) {
                     elapsedTime = System.currentTimeMillis() - startTime;
                     updateTimerDisplay();
                     handler.postDelayed(this, 50);
@@ -430,7 +430,7 @@ public class TimerFragment extends Fragment {
         runnable = new Runnable() {
             @Override
             public void run() {
-                if (isRunning && timerMinutes != null) {
+                if (isRunning && timerHours != null) {
                     elapsedTime = System.currentTimeMillis() - startTime;
                     updateTimerDisplay();
                     handler.postDelayed(this, 50);
@@ -620,13 +620,13 @@ public class TimerFragment extends Fragment {
 
     private void updateTimerDisplay() {
         long totalSeconds = elapsedTime / 1000;
-        long minutes = totalSeconds / 60;
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
         long seconds = totalSeconds % 60;
-        long milliseconds = (elapsedTime % 1000) / 10;
 
+        timerHours.setText(String.format(Locale.getDefault(), "%02d", hours));
         timerMinutes.setText(String.format(Locale.getDefault(), "%02d", minutes));
         timerSeconds.setText(String.format(Locale.getDefault(), "%02d", seconds));
-        timerMilliseconds.setText(String.format(Locale.getDefault(), "%02d", milliseconds));
     }
 
     @Override

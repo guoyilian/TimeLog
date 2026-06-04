@@ -50,6 +50,7 @@ public class DayLineChartView extends View {
     private float maxYValue = 60f;
     private float[] yAxisLabels;
     private int totalMinutes = 0;
+    private String titlePrefix = "今日"; // 标题前缀，可自定义
 
     private boolean isTouching = false;
     private boolean isTooltipVisible = false;
@@ -149,15 +150,33 @@ public class DayLineChartView extends View {
         updatePaddings();
     }
 
+    public void setTitlePrefix(String prefix) {
+        this.titlePrefix = prefix;
+        invalidate();
+    }
+
     private void updatePaddings() {
         float maxLabelWidth = 0;
         if (yAxisLabels != null) {
             for (float val : yAxisLabels) {
-                maxLabelWidth = Math.max(maxLabelWidth, yTextPaint.measureText(String.format("%.0f", val) + "分钟"));
+                maxLabelWidth = Math.max(maxLabelWidth, yTextPaint.measureText(getYAxisLabelText(val)));
             }
         }
         paddingLeft = (int) maxLabelWidth + dpToPx(12);
         paddingRight = dpToPx(8);
+    }
+    
+    private String getYAxisLabelText(float minutes) {
+        float hours = minutes / 60f;
+        if (hours < 1) {
+            return String.format("%.0f分钟", minutes);
+        } else if (hours == 1) {
+            return "1小时";
+        } else if (hours % 1 == 0) {
+            return String.format("%.0f小时", hours);
+        } else {
+            return String.format("%.1f小时", hours);
+        }
     }
 
     private void initEmptyData() {
@@ -168,25 +187,30 @@ public class DayLineChartView extends View {
     }
 
     private void calculateYAxisLabels(float maxTime) {
-        if (maxTime <= 15) {
+        float maxHours = maxTime / 60f;
+        
+        if (maxHours <= 0.25f) { // ≤ 15分钟
             maxYValue = 15f;
             yAxisLabels = new float[]{0, 5, 10, 15};
-        } else if (maxTime <= 30) {
+        } else if (maxHours <= 0.5f) { // ≤ 30分钟
             maxYValue = 30f;
             yAxisLabels = new float[]{0, 10, 20, 30};
-        } else if (maxTime <= 45) {
-            maxYValue = 45f;
-            yAxisLabels = new float[]{0, 15, 30, 45};
-        } else if (maxTime <= 60) {
+        } else if (maxHours <= 1f) { // ≤ 1小时
             maxYValue = 60f;
             yAxisLabels = new float[]{0, 15, 30, 45, 60};
+        } else if (maxHours <= 2f) { // ≤ 2小时
+            maxYValue = 120f;
+            yAxisLabels = new float[]{0, 30, 60, 90, 120};
+        } else if (maxHours <= 4f) { // ≤ 4小时
+            maxYValue = 240f;
+            yAxisLabels = new float[]{0, 60, 120, 180, 240};
         } else {
-            int step = 30;
-            int count = (int) Math.ceil(maxTime / step);
-            maxYValue = count * step;
+            int stepMinutes = 60; // 1小时为一个刻度
+            int count = (int) Math.ceil(maxTime / stepMinutes);
+            maxYValue = count * stepMinutes;
             yAxisLabels = new float[count + 1];
             for (int i = 0; i <= count; i++) {
-                yAxisLabels[i] = i * step;
+                yAxisLabels[i] = i * stepMinutes;
             }
         }
         updatePaddings();
@@ -246,6 +270,11 @@ public class DayLineChartView extends View {
             dataPoints.add(new DataPoint(hour, minutes, label, timeLabel));
         }
 
+        invalidate();
+    }
+
+    public void resetToToday() {
+        titlePrefix = "今日";
         invalidate();
     }
 
@@ -313,9 +342,9 @@ public class DayLineChartView extends View {
         int mins = totalMinutes % 60;
         String text;
         if (hours > 0) {
-            text = "今日总时长：" + hours + "小时" + mins + "分钟";
+            text = titlePrefix + "总时长：" + hours + "小时" + mins + "分钟";
         } else {
-            text = "今日总时长：" + mins + "分钟";
+            text = titlePrefix + "总时长：" + mins + "分钟";
         }
 
         Paint titlePaint = new Paint();
@@ -357,7 +386,7 @@ public class DayLineChartView extends View {
         for (float val : yAxisLabels) {
             float x = paddingLeft - dpToPx(6);
             float y = paddingTop + chartHeight - (val / maxYValue) * chartHeight + dpToPx(4);
-            canvas.drawText(String.format("%.0f", val) + "分钟", x, y, yTextPaint);
+            canvas.drawText(getYAxisLabelText(val), x, y, yTextPaint);
         }
     }
 
@@ -426,7 +455,18 @@ public class DayLineChartView extends View {
         if (touchedPoint.label != null && !touchedPoint.label.isEmpty()) {
             line1 = touchedPoint.timeLabel + " " + touchedPoint.label;
         }
-        String line2 = String.format("%.0f分钟", Math.max(touchedPoint.minutes, 0));
+        String line2;
+        float minutes = Math.max(touchedPoint.minutes, 0);
+        float hours = minutes / 60f;
+        if (hours < 1) {
+            line2 = String.format("%.0f分钟", minutes);
+        } else if (hours == 1) {
+            line2 = "1小时";
+        } else if (hours % 1 == 0) {
+            line2 = String.format("%.0f小时", hours);
+        } else {
+            line2 = String.format("%.1f小时", hours);
+        }
 
         float textY = tooltipY + dpToPx(14);
 

@@ -26,7 +26,7 @@
                 android:paddingHorizontal="16dp">
 
                 <TextView
-                    android:id="@+id/timer_minutes"
+                    android:id="@+id/timer_hours"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -50,7 +50,7 @@
                     android:includeFontPadding="false"/>
 
                 <TextView
-                    android:id="@+id/timer_seconds"
+                    android:id="@+id/timer_minutes"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -74,7 +74,7 @@
                     android:includeFontPadding="false"/>
 
                 <TextView
-                    android:id="@+id/timer_milliseconds"
+                    android:id="@+id/timer_seconds"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"

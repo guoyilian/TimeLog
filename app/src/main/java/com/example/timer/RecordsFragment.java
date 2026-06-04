@@ -43,7 +43,7 @@ public class RecordsFragment extends Fragment {
     private RecyclerView dayTimelineList;
     private LinearLayout weekTimelineList;
     private TextView listHeader, chartListHeader;
-    private View weekChartCard, monthHeatmapCard, yearHeatmapCard;
+    private View weekChartCard, monthHeatmapCard, yearHeatmapCard, chartTaskStatsCard;
     private LinearLayout viewDay, viewChart;
     private Button subTabDay, subTabWeek, subTabMonth, subTabYear;
     private DayLineChartView dayLineChart;
@@ -52,6 +52,14 @@ public class RecordsFragment extends Fragment {
     private YearStatisticsView yearStatisticsView;
     private DayRecordsAdapter dayAdapter;
     private FloatingActionButton fabAdd;
+    private TextView chartStatsTitle;
+    private com.example.timer.FlowLayout chartStatsTagsLayout;
+    
+    private String selectedDate; // 选中的日期 yyyy-MM-dd，null 表示今天
+    private static final String[] TASK_COLORS = {
+        "#6A9974", "#998A6A", "#996A6A", "#6A7A99", 
+        "#7A6A99", "#996A8A", "#8A996A", "#6A998A"
+    };
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -104,6 +112,9 @@ public class RecordsFragment extends Fragment {
         weekChartCard = view.findViewById(R.id.week_chart_card);
         monthHeatmapCard = view.findViewById(R.id.month_heatmap_card);
         yearHeatmapCard = view.findViewById(R.id.year_heatmap_card);
+        chartTaskStatsCard = view.findViewById(R.id.chart_task_stats_card);
+        chartStatsTitle = view.findViewById(R.id.chart_stats_title);
+        chartStatsTagsLayout = view.findViewById(R.id.chart_stats_tags_layout);
 
         viewDay.setOnTouchListener((v, event) -> {
             dayAdapter.closeAllSwipeItems();
@@ -134,7 +145,17 @@ public class RecordsFragment extends Fragment {
             });
         }
 
-        subTabDay.setOnClickListener(v -> switchSubView("day"));
+        if (weekBarChart != null) {
+            weekBarChart.setOnBarClickListener((dayData, index) -> {
+                selectedDate = dayData.fullDate;
+                switchSubView("day", -1, -1, true);
+            });
+        }
+
+        subTabDay.setOnClickListener(v -> {
+            selectedDate = null; // 点击日标签时重置为今天
+            switchSubView("day");
+        });
         subTabWeek.setOnClickListener(v -> switchSubView("week"));
         subTabMonth.setOnClickListener(v -> switchSubView("month"));
         subTabYear.setOnClickListener(v -> switchSubView("year"));
@@ -157,6 +178,24 @@ public class RecordsFragment extends Fragment {
             if (subTabYear.isSelected()) return "year";
         }
         return "day";
+    }
+
+    private void updateSubTabState(String view) {
+        subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
+        subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabDay.setSelected(view.equals("day"));
+
+        subTabWeek.setBackgroundResource(view.equals("week") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
+        subTabWeek.setTextColor(view.equals("week") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabWeek.setSelected(view.equals("week"));
+
+        subTabMonth.setBackgroundResource(view.equals("month") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
+        subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabMonth.setSelected(view.equals("month"));
+
+        subTabYear.setBackgroundResource(view.equals("year") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
+        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabYear.setSelected(view.equals("year"));
     }
 
     private void switchSubView(String view) {
@@ -187,6 +226,10 @@ public class RecordsFragment extends Fragment {
             dayLineChart.clearTouchState();
         }
 
+        if (weekBarChart != null) {
+            weekBarChart.clearTouchState();
+        }
+
         subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
         subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
         subTabDay.setSelected(view.equals("day"));
@@ -202,6 +245,12 @@ public class RecordsFragment extends Fragment {
         subTabYear.setBackgroundResource(view.equals("year") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
         subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
         subTabYear.setSelected(view.equals("year"));
+
+        // 如果切换到日视图，且不带动画且已经在日视图，直接更新数据
+        if (view.equals("day") && !withAnimation && viewDay.getVisibility() == View.VISIBLE) {
+            updateDayView();
+            return;
+        }
 
         View currentView = viewDay.getVisibility() == View.VISIBLE ? viewDay : viewChart;
         
@@ -321,26 +370,51 @@ public class RecordsFragment extends Fragment {
     }
 
     private void updateDayView() {
-        List<TimerRecord> dayRecords = getTodayRecords();
+        List<TimerRecord> dayRecords = getRecordsByDate(selectedDate);
+        
         if (dayLineChart != null) {
+            // 设置折线图标题
+            if (selectedDate == null) {
+                dayLineChart.setTitlePrefix("今日");
+            } else {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    Date date = sdf.parse(selectedDate);
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(date);
+                    
+                    String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+                    String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("M/d", Locale.getDefault());
+                    String dateLabel = dateFormat.format(date);
+                    
+                    dayLineChart.setTitlePrefix(dayOfWeek + " (" + dateLabel + ")");
+                } catch (Exception e) {
+                    dayLineChart.setTitlePrefix(selectedDate);
+                }
+            }
             dayLineChart.setData(dayRecords);
         }
+        
         renderDayList(dayRecords);
     }
 
     private void updateDayChart() {
         if (dayLineChart != null) {
-            dayLineChart.setData(getTodayRecords());
+            dayLineChart.setData(getRecordsByDate(selectedDate));
         }
     }
 
-    private List<TimerRecord> getTodayRecords() {
+    private List<TimerRecord> getRecordsByDate(String dateStr) {
         List<TimerRecord> result = new ArrayList<>();
         List<TimerRecord> allRecords = dataManager.getRecords();
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String targetDate = dateStr;
+        if (targetDate == null) {
+            targetDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        }
 
         for (TimerRecord record : allRecords) {
-            if (record.getStart().startsWith(today)) {
+            if (record.getStart().startsWith(targetDate)) {
                 result.add(record);
             }
         }
@@ -355,6 +429,7 @@ public class RecordsFragment extends Fragment {
 
         String[] weekDays = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
         List<WeekBarChartView.DayData> dayDataList = new ArrayList<>();
+        List<TimerRecord> weekRecords = new ArrayList<>();
 
         List<TimerRecord> allRecords = dataManager.getRecords();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -368,6 +443,7 @@ public class RecordsFragment extends Fragment {
             for (TimerRecord record : allRecords) {
                 if (record.getStart().startsWith(dateStr)) {
                     dayMinutes += record.getDurationMin();
+                    weekRecords.add(record);
                     if (taskType.isEmpty() && record.getName() != null) {
                         taskType = record.getName();
                     }
@@ -375,11 +451,12 @@ public class RecordsFragment extends Fragment {
             }
 
             String dateLabel = dateFormat.format(cal.getTime());
-            dayDataList.add(new WeekBarChartView.DayData(weekDays[i], dateLabel, dayMinutes, taskType));
+            dayDataList.add(new WeekBarChartView.DayData(weekDays[i], dateLabel, dateStr, dayMinutes, taskType));
             cal.add(Calendar.DAY_OF_YEAR, 1);
         }
 
         weekBarChart.setData(dayDataList);
+        renderChartTaskStats(weekRecords, "本周统计");
     }
 
     private void renderMonthHeatmap() {
@@ -402,6 +479,7 @@ public class RecordsFragment extends Fragment {
         int firstDayOfWeek = MonthHeatmapView.getMondayBasedDayOfWeek(cal);
 
         int[] dailyMinutes = new int[31];
+        List<TimerRecord> monthRecords = new ArrayList<>();
         List<TimerRecord> allRecords = dataManager.getRecords();
         String monthPrefix = String.format("%04d-%02d", displayYear, displayMonth);
 
@@ -412,10 +490,12 @@ public class RecordsFragment extends Fragment {
                 if (dayIndex >= 0 && dayIndex < 31) {
                     dailyMinutes[dayIndex] += record.getDurationMin();
                 }
+                monthRecords.add(record);
             }
         }
 
         monthHeatmap.setMonthData(dailyMinutes, firstDayOfWeek, displayYear, displayMonth);
+        renderChartTaskStats(monthRecords, "本月统计");
     }
 
     private void clearMonthDayList() {
@@ -495,14 +575,40 @@ public class RecordsFragment extends Fragment {
     }
 
     private void renderDayList(List<TimerRecord> records) {
+        // 不管记录是否为空，都设置列表数据
+        if (selectedDate == null) {
+            listHeader.setText("今日记录");
+        } else {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date date = sdf.parse(selectedDate);
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(date);
+                
+                String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+                String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
+                SimpleDateFormat dateFormat = new SimpleDateFormat("M/d", Locale.getDefault());
+                String dateLabel = dateFormat.format(date);
+                
+                listHeader.setText(dayOfWeek + " (" + dateLabel + ")");
+            } catch (Exception e) {
+                listHeader.setText(selectedDate);
+            }
+        }
+        
         if (records.isEmpty()) {
             listHeader.setVisibility(View.GONE);
-            return;
+        } else {
+            listHeader.setVisibility(View.VISIBLE);
         }
-
-        listHeader.setVisibility(View.VISIBLE);
-        listHeader.setText("今日记录");
-        dayAdapter.setRecords(records);
+        
+        // 强制更新适配器数据
+        dayAdapter.setRecords(new ArrayList<>(records));
+        // 确保 RecyclerView 刷新
+        dayTimelineList.post(() -> {
+            dayTimelineList.invalidate();
+            dayTimelineList.requestLayout();
+        });
     }
 
     private void renderWeekList() {
@@ -617,6 +723,7 @@ public class RecordsFragment extends Fragment {
         TextView title = dialogView.findViewById(R.id.dialog_title);
         TextView subtitle = dialogView.findViewById(R.id.dialog_subtitle);
         TextView totalTime = dialogView.findViewById(R.id.dialog_total_time);
+        TextView taskDetails = dialogView.findViewById(R.id.dialog_task_details);
         PieChartView pieChart = dialogView.findViewById(R.id.pie_chart);
 
         if (isFromMonth) {
@@ -637,6 +744,34 @@ public class RecordsFragment extends Fragment {
         } else {
             totalTime.setText("总计时：" + mins + "分钟");
         }
+
+        // 构建任务详情文本
+        StringBuilder detailsBuilder = new StringBuilder();
+        for (Map.Entry<String, Integer> entry : taskMinutes.entrySet()) {
+            String taskName = entry.getKey();
+            int taskMins = entry.getValue();
+            
+            // 添加分隔符（如果不是第一个）
+            if (detailsBuilder.length() > 0) {
+                detailsBuilder.append("；");
+            }
+            
+            // 添加任务名称和时长
+            detailsBuilder.append(taskName);
+            detailsBuilder.append("：");
+            int taskHours = taskMins / 60;
+            int taskRemainingMins = taskMins % 60;
+            if (taskHours > 0) {
+                detailsBuilder.append(taskHours).append("小时").append(taskRemainingMins).append("分钟");
+            } else {
+                detailsBuilder.append(taskRemainingMins).append("分钟");
+            }
+        }
+        
+        // 设置任务详情文本
+        taskDetails.setText(detailsBuilder.toString());
+        // 如果有内容则显示，否则隐藏
+        taskDetails.setVisibility(detailsBuilder.length() > 0 ? View.VISIBLE : View.GONE);
 
         dialog.setCanceledOnTouchOutside(true);
         dialog.show();
@@ -1009,5 +1144,73 @@ public class RecordsFragment extends Fragment {
         });
 
         dialog.show();
+    }
+
+    private void renderChartTaskStats(List<TimerRecord> records, String title) {
+        if (chartStatsTagsLayout == null || chartStatsTitle == null || chartTaskStatsCard == null) {
+            return;
+        }
+
+        chartStatsTagsLayout.removeAllViews();
+
+        Map<String, Integer> taskMinutes = new HashMap<>();
+        for (TimerRecord record : records) {
+            String taskName = record.getName();
+            int mins = record.getDurationMin();
+            if (taskMinutes.containsKey(taskName)) {
+                taskMinutes.put(taskName, taskMinutes.get(taskName) + mins);
+            } else {
+                taskMinutes.put(taskName, mins);
+            }
+        }
+
+        if (taskMinutes.isEmpty()) {
+            chartTaskStatsCard.setVisibility(View.GONE);
+            return;
+        }
+
+        chartTaskStatsCard.setVisibility(View.VISIBLE);
+        chartStatsTitle.setText(title);
+
+        List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(taskMinutes.entrySet());
+        sortedList.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+
+        int colorIndex = 0;
+        for (Map.Entry<String, Integer> entry : sortedList) {
+            View tagView = LayoutInflater.from(requireContext()).inflate(R.layout.item_task_tag, chartStatsTagsLayout, false);
+
+            View colorDot = tagView.findViewById(R.id.tag_color_dot);
+            TextView tagText = tagView.findViewById(R.id.tag_text);
+
+            String color = TASK_COLORS[colorIndex % TASK_COLORS.length];
+            colorDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor(color)));
+
+            int mins = entry.getValue();
+            int hours = mins / 60;
+            int remainingMins = mins % 60;
+            String durationText;
+            if (hours > 0) {
+                durationText = hours + "h" + remainingMins + "m";
+            } else {
+                durationText = remainingMins + "m";
+            }
+
+            tagText.setText(entry.getKey() + "：" + durationText);
+
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.rightMargin = dpToPx(8);
+            lp.bottomMargin = dpToPx(8);
+            tagView.setLayoutParams(lp);
+
+            chartStatsTagsLayout.addView(tagView);
+            colorIndex++;
+        }
+    }
+
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return (int) (dp * density + 0.5f);
     }
 }
