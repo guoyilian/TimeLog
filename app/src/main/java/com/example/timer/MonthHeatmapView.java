@@ -24,7 +24,7 @@ public class MonthHeatmapView extends View {
     }
 
     private static final int GRID_COLUMNS = 7;
-    private static final int GRID_ROWS = 5;
+    private static final int GRID_ROWS = 6;
     private static final int MAX_DAYS = 31;
     private static final long RIPPLE_DURATION_MS = 2000L;
     private static final long HIGHLIGHT_DURATION_MS = 500L;
