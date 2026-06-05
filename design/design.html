@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简计时 App 原型</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 隐藏滚动条，保持移动端 App 的纯净感 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 flex justify-center items-center min-h-screen p-4">
+
+    <div class="w-[390px] h-[844px] bg-[#F4F7F4] rounded-[40px] shadow-2xl overflow-hidden flex flex-col relative border-8 border-gray-800">
+        
+        <div class="h-10 px-6 flex justify-between items-center text-[#2C3E30] text-xs font-semibold select-none z-10">
+            <span>09:41</span>
+            <div class="flex items-center gap-1.5">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-three-quarters text-sm"></i>
+            </div>
+        </div>
+
+        <div class="bg-[#F4F7F4] border-b border-[#A3C6A8]/30 relative z-10">
+            <div class="flex">
+                <button onclick="switchPage(0)" id="tab-0" class="flex-1 py-4 text-center font-bold text-base transition-colors duration-300 text-[#4A7A56]">
+                    计时
+                </button>
+                <button onclick="switchPage(1)" id="tab-1" class="flex-1 py-4 text-center font-bold text-base transition-colors duration-300 text-[#A3C6A8]">
+                    我的记录
+                </button>
+            </div>
+            <div id="tab-indicator" class="absolute bottom-0 left-0 w-1/2 h-1 bg-[#4A7A56] transition-all duration-300 transform translate-x-0"></div>
+        </div>
+
+        <div id="page-container" class="flex-1 flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth">
+            
+            <div class="w-[374px] flex-shrink-0 snap-start flex flex-col justify-between items-center py-12 px-6 box-border">
+                
+                <div class="text-center my-auto">
+                    <div id="timer-display" class="text-5xl font-mono font-bold text-[#2C3E30] tracking-wider select-none">
+                        00 : 00 : 00
+                    </div>
+                </div>
+
+                <div class="w-full space-y-6 mb-8">
+                    <div class="space-y-2">
+                        <input type="text" id="timer-name" placeholder="输入计时名称" 
+                               class="w-full px-4 py-3.5 bg-white border border-[#A3C6A8]/40 rounded-2xl text-[#2C3E30] placeholder-[#A3C6A8] focus:outline-none focus:border-[#4A7A56] font-medium shadow-sm transition-all">
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 justify-center">
+                        <button onclick="setTagName('看书')" class="px-3 py-1.5 bg-white border border-[#A3C6A8]/30 rounded-full text-xs font-medium text-[#4A7A56] hover:bg-[#A3C6A8]/10 transition-colors shadow-sm">看书</button>
+                        <button onclick="setTagName('工作')" class="px-3 py-1.5 bg-white border border-[#A3C6A8]/30 rounded-full text-xs font-medium text-[#4A7A56] hover:bg-[#A3C6A8]/10 transition-colors shadow-sm">工作</button>
+                        <button onclick="setTagName('运动')" class="px-3 py-1.5 bg-white border border-[#A3C6A8]/30 rounded-full text-xs font-medium text-[#4A7A56] hover:bg-[#A3C6A8]/10 transition-colors shadow-sm">运动</button>
+                        <button onclick="setTagName('冥想')" class="px-3 py-1.5 bg-white border border-[#A3C6A8]/30 rounded-full text-xs font-medium text-[#4A7A56] hover:bg-[#A3C6A8]/10 transition-colors shadow-sm">冥想</button>
+                    </div>
+
+                    <div class="flex justify-center items-center gap-8 pt-4">
+                        <button id="btn-pause" onclick="pauseTimer()" disabled
+                                class="w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-[#A3C6A8] border border-[#A3C6A8]/20 shadow-md cursor-not-allowed transition-all active:scale-95">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                        
+                        <button id="btn-start" onclick="startTimer()" 
+                                class="w-20 h-20 bg-[#4A7A56] rounded-full flex justify-center items-center text-2xl text-white shadow-lg shadow-[#4A7A56]/30 transition-all active:scale-95">
+                            <i id="start-icon" class="fas fa-play translate-x-0.5"></i>
+                        </button>
+                        
+                        <button id="btn-stop" onclick="stopTimer()" disabled
+                                class="w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-[#A3C6A8] border border-[#A3C6A8]/20 shadow-md cursor-not-allowed transition-all active:scale-95">
+                            <i class="fas fa-stop"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-[374px] flex-shrink-0 snap-start flex flex-col bg-[#F4F7F4] overflow-y-auto no-scrollbar box-border p-5">
+                
+                <div class="flex bg-white/60 p-1 rounded-xl border border-[#A3C6A8]/20 mb-4 shadow-sm">
+                    <button onclick="switchSubView('day')" id="sub-tab-day" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-[#4A7A56] text-white transition-all">日</button>
+                    <button onclick="switchSubView('week')" id="sub-tab-week" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-[#4A7A56] transition-all">周</button>
+                    <button onclick="switchSubView('month')" id="sub-tab-month" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-[#4A7A56] transition-all">月</button>
+                    <button onclick="switchSubView('year')" id="sub-tab-year" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-[#4A7A56] transition-all">年</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border border-[#A3C6A8]/20 shadow-sm mb-4 min-h-[160px] flex flex-col justify-center">
+                    
+                    <div id="view-day" class="space-y-1">
+                        <div class="text-xs font-medium text-[#A3C6A8]">今日总时长</div>
+                        <div class="text-2xl font-bold text-[#2C3E30]" id="today-total-hours">1小时45分钟</div>
+                        <div class="text-[11px] text-[#4A7A56] bg-[#A3C6A8]/10 px-2 py-0.5 rounded-md inline-block mt-1">
+                            累计记录: <span id="today-count">3</span> 笔
+                        </div>
+                    </div>
+
+                    <div id="view-chart" class="hidden space-y-3">
+                        <div class="text-xs font-medium text-[#A3C6A8]" id="chart-title">本周高效趋势</div>
+                        <div class="flex items-end justify-between h-24 pt-4 px-2" id="chart-bars-container">
+                            </div>
+                    </div>
+
+                    <div id="view-year" class="hidden space-y-2">
+                        <div class="text-xs font-medium text-[#A3C6A8]">2026年时间投入图 (GitHub风格)</div>
+                        <div class="grid grid-cols-12 gap-1 p-1 bg-[#F4F7F4] rounded-lg" id="heatmap-grid">
+                            </div>
+                        <div class="flex justify-end items-center gap-1 text-[9px] text-[#A3C6A8] pt-1">
+                            <span>少</span>
+                            <div class="w-2 h-2 bg-white border border-gray-200"></div>
+                            <div class="w-2 h-2 bg-[#A3C6A8]/40"></div>
+                            <div class="w-2 h-2 bg-[#A3C6A8]"></div>
+                            <div class="w-2 h-2 bg-[#4A7A56]"></div>
+                            <span>多</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1">
+                    <div class="text-xs font-bold text-[#4A7A56] mb-3 px-1" id="list-header">当日明细</div>
+                    
+                    <div id="timeline-list" class="relative pl-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#A3C6A8]/40">
+                        <div class="relative before:absolute before:-left-[14px] before:top-1.5 before:w-2.5 before:h-2.5 before:bg-[#4A7A56] before:rounded-full before:border-2 before:border-white">
+                            <div class="bg-white p-3 rounded-xl border border-[#A3C6A8]/10 shadow-sm flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-xs font-bold text-[#2C3E30]">读《瓦尔登湖》</h4>
+                                    <p class="text-[10px] text-[#A3C6A8] mt-0.5">⏱ 09:15 - 10:00</p>
+                                </div>
+                                <span class="text-xs font-semibold text-[#4A7A56]">45分钟</span>
+                            </div>
+                        </div>
+                        <div class="relative before:absolute before:-left-[14px] before:top-1.5 before:w-2.5 before:h-2.5 before:bg-[#A3C6A8] before:rounded-full before:border-2 before:border-white">
+                            <div class="bg-white p-3 rounded-xl border border-[#A3C6A8]/10 shadow-sm flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-xs font-bold text-[#2C3E30]">REC</h4>
+                                    <p class="text-[10px] text-[#A3C6A8] mt-0.5">⏱ 11:30 - 12:00</p>
+                                </div>
+                                <span class="text-xs font-semibold text-[#4A7A56]">30分钟</span>
+                            </div>
+                        </div>
+                        <div class="relative before:absolute before:-left-[14px] before:top-1.5 before:w-2.5 before:h-2.5 before:bg-[#4A7A56] before:rounded-full before:border-2 before:border-white">
+                            <div class="bg-white p-3 rounded-xl border border-[#A3C6A8]/10 shadow-sm flex justify-between items-center">
+                                <div>
+                                    <h4 class="text-xs font-bold text-[#2C3E30]">冥想习惯</h4>
+                                    <p class="text-[10px] text-[#A3C6A8] mt-0.5">⏱ 15:40 - 16:10</p>
+                                </div>
+                                <span class="text-xs font-semibold text-[#4A7A56]">30分钟</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="snackbar" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-[#2C3E30] text-white text-xs font-medium px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 translate-y-4 z-50">
+            <i class="fas fa-check-circle text-[#A3C6A8]"></i>
+            <span>已保存</span>
+        </div>
+
+        <div class="h-5 flex justify-center items-center z-10 select-none">
+            <div class="w-32 h-1 bg-gray-300 rounded-full"></div>
+        </div>
+    </div>
+
+    <script>
+        // 核心状态管理变量
+        let timer = null;
+        let isRunning = false;
+        let startTime = 0;
+        let elapsedTime = 0; // 累计毫秒数
+        
+        // 模拟的本地化历史数据源
+        let mockRecords = [
+            { name: "读《瓦尔登湖》", start: "09:15", end: "10:00", duration: "45分钟", durationMin: 45 },
+            { name: "REC", start: "11:30", end: "12:00", duration: "30分钟", durationMin: 30 },
+            { name: "冥想习惯", start: "15:40", end: "16:10", duration: "30分钟", durationMin: 30 }
+        ];
+
+        const container = document.getElementById('page-container');
+        
+        // 监听滚动，实现左右滑动时顶部 Tab 指示器和文字颜色的联动切换
+        container.addEventListener('scroll', () => {
+            const width = container.clientWidth;
+            const scrollLeft = container.scrollLeft;
+            const pageIndex = Math.round(scrollLeft / width);
+            updateTabUI(pageIndex);
+        });
+
+        function switchPage(index) {
+            const width = container.clientWidth;
+            container.scrollLeft = index * width;
+            updateTabUI(index);
+        }
+
+        function updateTabUI(index) {
+            const tab0 = document.getElementById('tab-0');
+            const tab1 = document.getElementById('tab-1');
+            const indicator = document.getElementById('tab-indicator');
+            
+            if(index === 0) {
+                tab0.classList.remove('text-[#A3C6A8]');
+                tab0.classList.add('text-[#4A7A56]');
+                tab1.classList.remove('text-[#4A7A56]');
+                tab1.classList.add('text-[#A3C6A8]');
+                indicator.style.transform = 'translateX(0%)';
+            } else {
+                tab1.classList.remove('text-[#A3C6A8]');
+                tab1.classList.add('text-[#4A7A56]');
+                tab0.classList.remove('text-[#4A7A56]');
+                tab0.classList.add('text-[#A3C6A8]');
+                indicator.style.transform = 'translateX(100%)';
+            }
+        }
+
+        // 快捷填入标签功能
+        function setTagName(name) {
+            document.getElementById('timer-name').value = name;
+        }
+
+        // 按钮及状态机驱动：开始计时 (Play Arrow)
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                startTime = Date.now() - elapsedTime;
+                timer = setInterval(updateTimerDisplay, 10); // 每10毫秒高频刷新以支持毫秒跑表
+                
+                // 改变按钮视觉状态
+                document.getElementById('btn-start').classList.add('bg-[#A3C6A8]');
+                document.getElementById('btn-start').classList.remove('bg-[#4A7A56]');
+                document.getElementById('btn-pause').disabled = false;
+                document.getElementById('btn-pause').className = "w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-[#4A7A56] border border-[#A3C6A8]/40 shadow-md transition-all active:scale-95 cursor-pointer";
+                document.getElementById('btn-stop').disabled = false;
+                document.getElementById('btn-stop').className = "w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-red-600 border border-red-200 shadow-md transition-all active:scale-95 cursor-pointer";
+            }
+        }
+
+        // 按钮及状态机驱动：暂停计时 (Pause)
+        function pauseTimer() {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timer);
+                // 恢复开始按钮颜色
+                document.getElementById('btn-start').classList.remove('bg-[#A3C6A8]');
+                document.getElementById('btn-start').classList.add('bg-[#4A7A56]');
+            }
+        }
+
+        // 按钮及状态机驱动：结束计时，直接无感保存
+        function stopTimer() {
+            clearInterval(timer);
+            
+            // 获取最终数据逻辑
+            let finalName = document.getElementById('timer-name').value.trim();
+            if(!finalName) finalName = "REC"; // 满足需求 b：为空时默认命名为 REC
+            
+            let totalMinutes = Math.max(1, Math.round(elapsedTime / 60000)); // 精确到分
+            
+            // 获取当前系统真实时间范围
+            let now = new Date();
+            let endStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            let startMinutesOld = now.getMinutes() - totalMinutes;
+            let startStr = `${String(now.getHours()).padStart(2, '0')}:${String(startMinutesOld >= 0 ? startMinutesOld : 0).padStart(2, '0')}`;
+
+            // 将新记录插入数组最前（本地持久化模拟）
+            mockRecords.unshift({
+                name: finalName,
+                start: startStr,
+                end: endStr,
+                duration: `${totalMinutes}分钟`,
+                durationMin: totalMinutes
+            });
+
+            // 重置计时引擎状态
+            isRunning = false;
+            elapsedTime = 0;
+            document.getElementById('timer-display').innerText = "00 : 00 : 00";
+            document.getElementById('timer-name').value = "";
+            
+            // 还原所有按钮状态
+            document.getElementById('btn-start').className = "w-20 h-20 bg-[#4A7A56] rounded-full flex justify-center items-center text-2xl text-white shadow-lg shadow-[#4A7A56]/30 transition-all active:scale-95";
+            document.getElementById('btn-pause').disabled = true;
+            document.getElementById('btn-pause').className = "w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-[#A3C6A8] border border-[#A3C6A8]/20 shadow-md cursor-not-allowed";
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('btn-stop').className = "w-14 h-14 bg-white rounded-full flex justify-center items-center text-xl text-[#A3C6A8] border border-[#A3C6A8]/20 shadow-md cursor-not-allowed";
+
+            // 触发渲染刷新
+            renderTimeline();
+            
+            // 满足需求 c：弹出底部无感 Toast “已保存”
+            showSnackbar();
+        }
+
+        // 毫秒级高精计时渲染函数 (分 - 秒 - 毫秒)
+        function updateTimerDisplay() {
+            elapsedTime = Date.now() - startTime;
+            
+            let minutes = Math.floor(elapsedTime / 60000);
+            let seconds = Math.floor((elapsedTime % 60000) / 1000);
+            let milliseconds = Math.floor((elapsedTime % 1000) / 10); // 两位数毫秒展示
+            
+            document.getElementById('timer-display').innerText = 
+                `${String(minutes).padStart(2, '0')} : ${String(seconds).padStart(2, '0')} : ${String(milliseconds).padStart(2, '0')}`;
+        }
+
+        // 吐司提示组件动效控制
+        function showSnackbar() {
+            const snackbar = document.getElementById('snackbar');
+            snackbar.classList.remove('opacity-0', 'translate-y-4', 'pointer-events-none');
+            snackbar.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                snackbar.classList.remove('opacity-100', 'translate-y-0');
+                snackbar.classList.add('opacity-0', 'translate-y-4', 'pointer-events-none');
+            }, 2000);
+        }
+
+        // 动态渲染数据统计明细 (日视图时间轴形式)
+        function renderTimeline() {
+            const listContainer = document.getElementById('timeline-list');
+            listContainer.innerHTML = "";
+            let totalMin = 0;
+
+            mockRecords.forEach((item, index) => {
+                totalMin += item.durationMin;
+                const dotColor = index === 0 ? "before:bg-[#4A7A56]" : "before:bg-[#A3C6A8]";
+                
+                listContainer.innerHTML += `
+                    <div class="relative before:absolute before:-left-[14px] before:top-1.5 before:w-2.5 before:h-2.5 ${dotColor} before:rounded-full before:border-2 before:border-white">
+                        <div class="bg-white p-3 rounded-xl border border-[#A3C6A8]/10 shadow-sm flex justify-between items-center">
+                            <div>
+                                <h4 class="text-xs font-bold text-[#2C3E30]">${item.name}</h4>
+                                <p class="text-[10px] text-[#A3C6A8] mt-0.5">⏱ ${item.start} - ${item.end}</p>
+                            </div>
+                            <span class="text-xs font-semibold text-[#4A7A56]">${item.duration}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // 同步更新顶部卡片汇总数据
+            document.getElementById('today-count').innerText = mockRecords.length;
+            let hours = Math.floor(totalMin / 60);
+            let mins = totalMin % 60;
+            document.getElementById('today-total-hours').innerText = hours > 0 ? `${hours}小时${mins}分钟` : `${mins}分钟`;
+        }
+
+        // 核心二级视图切换模块 (日、周、月、年)
+        function switchSubView(view) {
+            // 按钮高亮行为切换
+            const tabs = ['day', 'week', 'month', 'year'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`sub-tab-${t}`);
+                if (t === view) {
+                    btn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-[#4A7A56] text-white transition-all shadow-sm";
+                } else {
+                    btn.className = "flex-1 py-1.5 text-xs font-bold rounded-lg text-[#4A7A56] transition-all";
+                }
+            });
+
+            // 隐藏所有视图
+            document.getElementById('view-day').classList.add('hidden');
+            document.getElementById('view-chart').classList.add('hidden');
+            document.getElementById('view-year').classList.add('hidden');
+            
+            const listHeader = document.getElementById('list-header');
+            const timelineList = document.getElementById('timeline-list');
+            timelineList.className = "relative pl-4 space-y-4"; // 重置基础样式
+            
+            // 针对选择的维度重新组装图表及明细排版
+            if (view === 'day') {
+                document.getElementById('view-day').classList.remove('hidden');
+                listHeader.innerText = "当日明细";
+                timelineList.classList.add('before:absolute', 'before:left-1.5', 'before:top-2', 'before:bottom-2', 'before:w-0.5', 'before:bg-[#A3C6A8]/40');
+                renderTimeline();
+            } 
+            else if (view === 'week') {
+                document.getElementById('view-chart').classList.remove('hidden');
+                document.getElementById('chart-title').innerText = "本周高效趋势 (小时)";
+                listHeader.innerText = "本周历史周报";
+                
+                // 渲染周轻量级柱状图结构
+                const container = document.getElementById('chart-bars-container');
+                container.innerHTML = "";
+                const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+                const heights = ['h-10', 'h-16', 'h-6', 'h-24', 'h-12', 'h-4', 'h-2']; // 模拟高度
+                weekDays.forEach((day, i) => {
+                    const bg = i === 3 ? 'bg-[#4A7A56]' : 'bg-[#A3C6A8]';
+                    container.innerHTML += `
+                        <div class="flex flex-col items-center gap-1.5 flex-1">
+                            <div class="w-4.5 ${heights[i]} ${bg} rounded-t-sm transition-all duration-500"></div>
+                            <span class="text-[9px] font-bold text-[#A3C6A8]">${day}</span>
+                        </div>
+                    `;
+                });
+            } 
+            else if (view === 'month') {
+                document.getElementById('view-chart').classList.remove('hidden');
+                document.getElementById('chart-title').innerText = "本月集中趋势 (按天)";
+                listHeader.innerText = "本月历史月报";
+                
+                // 渲染月密集柱状图结构
+                const container = document.getElementById('chart-bars-container');
+                container.innerHTML = "";
+                for(let i=1; i<=15; i++) {
+                    let h = Math.floor(Math.random() * 80) + 10;
+                    let bg = h > 60 ? 'bg-[#4A7A56]' : 'bg-[#A3C6A8]';
+                    container.innerHTML += `
+                        <div class="flex flex-col items-center gap-1.5 flex-1">
+                            <div class="w-1.5 bg-[#A3C6A8] rounded-t-sm" style="height: ${h}px"></div>
+                            <span class="text-[7px] text-[#A3C6A8] scale-90">${i*2}</span>
+                        </div>
+                    `;
+                }
+            } 
+            else if (view === 'year') {
+                document.getElementById('view-year').classList.remove('hidden');
+                listHeader.innerText = "2026 年度盘点明细";
+                
+                // 渲染类似GitHub贡献矩阵的108天微缩热力图方格
+                const grid = document.getElementById('heatmap-grid');
+                grid.innerHTML = "";
+                const colors = ['bg-white', 'bg-[#A3C6A8]/30', 'bg-[#A3C6A8]', 'bg-[#4A7A56]'];
+                for(let i=0; i<108; i++) {
+                    let randColor = colors[Math.floor(Math.random() * colors.length)];
+                    grid.innerHTML += `<div class="w-2.5 h-2.5 ${randColor} border border-gray-100/30 rounded-sm"></div>`;
+                }
+            }
+        }
+
+        // 原型首次加载默认初始化
+        renderTimeline();
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="311dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_bg"
+    android:orientation="vertical"
+    android:paddingTop="24dp"
+    android:paddingHorizontal="24dp"
+    android:paddingBottom="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="输入计时名称"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#41503F"/>
+
+    <EditText
+        android:id="@+id/dialog_input"
+        android:layout_width="263dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/dialog_input_bg"
+        android:hint="例如：学习、看书、运动"
+        android:textColorHint="#9AA398"
+        android:textSize="14sp"
+        android:textColor="#41503F"
+        android:paddingLeft="14dp"
+        android:paddingRight="14dp"
+        android:inputType="text"
+        android:maxLines="1"
+        android:imeOptions="actionDone"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/btn_cancel"
+            android:layout_width="123dp"
+            android:layout_height="40dp"
+            android:background="@drawable/ripple_btn_cancel"
+            android:text="取消"
+            android:textSize="14sp"
+            android:textColor="#5B6459"
+            android:gravity="center"
+            android:textStyle="bold"/>
+
+        <View
+            android:layout_width="17dp"
+            android:layout_height="0dp"/>
+
+        <TextView
+            android:id="@+id/btn_confirm"
+            android:layout_width="123dp"
+            android:layout_height="40dp"
+            android:background="@drawable/ripple_btn_confirm"
+            android:text="确定"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:gravity="center"
+            android:textStyle="bold"/>
+    </LinearLayout>
+</LinearLayout>

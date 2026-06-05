@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:baselineAligned="false"
+                android:paddingHorizontal="16dp">
+
+                <TextView
+                    android:id="@+id/timer_hours"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="00"
+                    android:textColor="#0D1A12"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"
+                    android:gravity="center"/>
+
+                <TextView
+                    android:id="@+id/timer_colon1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textColor="#0D1A12"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"/>
+
+                <TextView
+                    android:id="@+id/timer_minutes"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="00"
+                    android:textColor="#0D1A12"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"
+                    android:gravity="center"/>
+
+                <TextView
+                    android:id="@+id/timer_colon2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=":"
+                    android:textColor="#0D1A12"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"/>
+
+                <TextView
+                    android:id="@+id/timer_seconds"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="00"
+                    android:textColor="#0D1A12"
+                    android:textSize="60sp"
+                    android:textStyle="bold"
+                    android:fontFamily="sans-serif-black"
+                    android:includeFontPadding="false"
+                    android:gravity="center"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_reset"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/ripple_button_reset"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/image_reset"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_reset"
+                    android:tint="#5A7D5A"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/card_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_bg_new"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="24dp">
+
+            <LinearLayout
+                android:id="@+id/timer_name"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@drawable/ripple_input_field"
+                android:gravity="center_vertical"
+                android:paddingLeft="12dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/timer_name_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="可选择输入自定义计时名称，默认为REC"
+                    android:textColor="#A6AEA4"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#E2ECE0"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:id="@+id/tag_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp"
+                android:weightSum="4">
+
+                <TextView
+                    android:id="@+id/tag1"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/ripple_tag"
+                    android:textColor="#70786E"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_marginRight="8dp"
+                    android:visibility="gone"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:paddingHorizontal="12dp"/>
+
+                <TextView
+                    android:id="@+id/tag2"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/ripple_tag"
+                    android:textColor="#70786E"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_marginRight="8dp"
+                    android:visibility="gone"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:paddingHorizontal="12dp"/>
+
+                <TextView
+                    android:id="@+id/tag3"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/ripple_tag"
+                    android:textColor="#70786E"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_marginRight="8dp"
+                    android:visibility="gone"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:paddingHorizontal="12dp"/>
+
+                <TextView
+                    android:id="@+id/tag4"
+                    android:layout_width="0dp"
+                    android:layout_height="32dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/ripple_tag"
+                    android:textColor="#70786E"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:paddingHorizontal="12dp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="24dp"
+            android:paddingBottom="48dp">
+
+            <LinearLayout
+                android:id="@+id/btn_play_pause"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/ripple_button_start"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/image_play_pause"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@drawable/ic_play"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_stop"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center"
+                android:background="@drawable/ripple_button_stop"
+                android:gravity="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="invisible">
+
+                <ImageView
+                    android:id="@+id/image_stop"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_stop"/>
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+</ScrollView>

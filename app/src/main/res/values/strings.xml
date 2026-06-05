@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">TimeLog</string>
+    <string name="timer">计时</string>
+    <string name="records">我的记录</string>
+    <string name="input_name">输入计时名称</string>
+    <string name="input_timer_name">输入计时名称</string>
+    <string name="reading">看书</string>
+    <string name="work">工作</string>
+    <string name="study">学习</string>
+    <string name="exercise">运动</string>
+    <string name="meditation">冥想</string>
+    <string name="today_total">今日总时长</string>
+    <string name="today_count">累计记录: %d 笔</string>
+    <string name="day">日</string>
+    <string name="week">周</string>
+    <string name="month">月</string>
+    <string name="year">年</string>
+    <string name="today_details">当日明细</string>
+    <string name="week_details">本周历史周报</string>
+    <string name="month_details">本月历史月报</string>
+    <string name="year_details">2026 年度盘点明细</string>
+    <string name="saved">已保存</string>
+    <string name="week_chart_title">本周高效趋势 (小时)</string>
+    <string name="month_chart_title">本月集中趋势 (按天)</string>
+    <string name="year_chart_title">2026年时间投入图</string>
+
+    <string name="heatmap_title_format">%1$d月计时热力图</string>
+    <string name="heatmap_subtitle">颜色深浅表示计时时长（颜色梯度：1-30，31-60，61-120，&gt;120 分钟）</string>
+    <string name="heatmap_total_format">%1$d月总时长: %2$d小时</string>
+    <string name="heatmap_weekday_mon">一</string>
+    <string name="heatmap_weekday_tue">二</string>
+    <string name="heatmap_weekday_wed">三</string>
+    <string name="heatmap_weekday_thu">四</string>
+    <string name="heatmap_weekday_fri">五</string>
+    <string name="heatmap_weekday_sat">六</string>
+    <string name="heatmap_weekday_sun">日</string>
+</resources>

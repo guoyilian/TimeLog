@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_main">#F4F7F4</color>
+    <color name="background">#F5F5F5</color>
+    <color name="text_primary">#2C3E30</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_hint">#D1D5DB</color>
+    <color name="text_dark">#1A2A1E</color>
+    <color name="accent">#4A7A56</color>
+    <color name="accent_light">#A3C6A8</color>
+    <color name="accent_light_transparent">#A3C6A840</color>
+    <color name="white">#FFFFFF</color>
+    <color name="border">#A3C6A8</color>
+    <color name="red">#DC2626</color>
+    <color name="transparent">#00000000</color>
+    <color name="tag_bg">#F3F4F6</color>
+    
+    <color name="card_bg">#F7F9F6</color>
+    <color name="card_border">#ECEFEA</color>
+    <color name="input_bg">#FFFFFF</color>
+    <color name="input_border">#E2E6E0</color>
+    <color name="input_hint">#A6AEA4</color>
+    <color name="tag_bg_new">#E8ECE7</color>
+    <color name="tag_text">#70786E</color>
+    <color name="toast_success_text">#4D6451</color>
+    <color name="toast_error_text">#734341</color>
+    
+    <color name="heatmap_empty">#E8ECE7</color>
+    <color name="heatmap_level1">#A3C6A8</color>
+    <color name="heatmap_level2">#7AB58A</color>
+    <color name="heatmap_level3">#5A9B6D</color>
+    <color name="heatmap_level4">#3D7C52</color>
+
+    <!-- Month heatmap color scale -->
+    <color name="heatmap_month_empty">#F5F5F5</color>
+    <color name="heatmap_month_level0">#F5F5F5</color>
+    <color name="heatmap_month_level1">#C5D8B8</color>
+    <color name="heatmap_month_level2">#8EB88E</color>
+    <color name="heatmap_month_level3">#5A7D5A</color>
+
+    <color name="heatmap_title_text">#333333</color>
+    <color name="heatmap_subtitle_text">#999999</color>
+    <color name="heatmap_footer_text">#333333</color>
+    <color name="heatmap_weekday_text">#333333</color>
+    
+    <color name="grey_light">#F5F5F5</color>
+    <color name="divider">#E8E8E8</color>
+</resources>
