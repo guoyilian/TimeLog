@@ -26,6 +26,7 @@ public class YearStatisticsView extends LinearLayout {
     private List<TimerRecord> allRecords;
     private List<Integer> availableYears;
     private boolean isInitializing = true;
+    private boolean hasInitializedYear = false; // 标记是否已经初始化过年份
 
     public YearStatisticsView(Context context) {
         super(context);
@@ -80,7 +81,11 @@ public class YearStatisticsView extends LinearLayout {
 
     public void updateData(List<TimerRecord> records) {
         this.allRecords = records;
-        currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        // 只有首次初始化时才设置为今年，之后保持用户选择的年份
+        if (!hasInitializedYear) {
+            currentYear = Calendar.getInstance().get(Calendar.YEAR);
+            hasInitializedYear = true;
+        }
         populateYearSpinner();
         renderYearData(currentYear);
     }

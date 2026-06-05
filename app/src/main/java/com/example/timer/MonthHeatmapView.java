@@ -142,12 +142,7 @@ public class MonthHeatmapView extends View {
         year = now.get(Calendar.YEAR);
         month = now.get(Calendar.MONTH) + 1;
         daysInMonth = now.getActualMaximum(Calendar.DAY_OF_MONTH);
-        firstDayColumn = getSundayBasedDayOfWeek(now);
-    }
-
-    private int getSundayBasedDayOfWeek(Calendar calendar) {
-        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-        return dayOfWeek - 1;
+        firstDayColumn = now.get(Calendar.DAY_OF_WEEK) - 1;
     }
 
     public void setOnCellClickListener(OnCellClickListener listener) {
@@ -175,11 +170,6 @@ public class MonthHeatmapView extends View {
         cells.clear();
         requestLayout();
         invalidate();
-    }
-
-    public static int getMondayBasedDayOfWeek(Calendar calendar) {
-        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-        return (dayOfWeek + 5) % 7;
     }
 
     @Override

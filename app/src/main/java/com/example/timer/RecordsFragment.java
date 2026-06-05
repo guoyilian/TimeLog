@@ -377,7 +377,12 @@ public class RecordsFragment extends Fragment {
         if (dayLineChart != null) {
             // 设置折线图标题
             if (selectedDate == null) {
-                dayLineChart.setTitlePrefix("今日");
+                // 今天
+                Calendar today = Calendar.getInstance();
+                String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+                String dayOfWeek = weekDays[today.get(Calendar.DAY_OF_WEEK) - 1];
+                dayLineChart.setTitlePrefix(todayStr + "（" + dayOfWeek + "）");
             } else {
                 try {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -387,10 +392,8 @@ public class RecordsFragment extends Fragment {
                     
                     String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
                     String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("M/d", Locale.getDefault());
-                    String dateLabel = dateFormat.format(date);
                     
-                    dayLineChart.setTitlePrefix(dayOfWeek + " (" + dateLabel + ")");
+                    dayLineChart.setTitlePrefix(selectedDate + "（" + dayOfWeek + "）");
                 } catch (Exception e) {
                     dayLineChart.setTitlePrefix(selectedDate);
                 }
@@ -478,7 +481,7 @@ public class RecordsFragment extends Fragment {
         cal.set(year, month, 1);
         int displayYear = cal.get(Calendar.YEAR);
         int displayMonth = cal.get(Calendar.MONTH) + 1;
-        int firstDayOfWeek = MonthHeatmapView.getMondayBasedDayOfWeek(cal);
+        int firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1;
 
         int[] dailyMinutes = new int[31];
         List<TimerRecord> monthRecords = new ArrayList<>();
