@@ -343,14 +343,16 @@ public class YearHeatmapView extends View {
     private int getColorForDuration(int minutes) {
         if (minutes == 0) {
             return Color.parseColor("#E8E8E8");
-        } else if (minutes <= 30) {
-            return Color.parseColor("#A8D5BA");
         } else if (minutes <= 60) {
-            return Color.parseColor("#6BB88A");
+            return Color.parseColor("#D0E8D0");
         } else if (minutes <= 120) {
-            return Color.parseColor("#4A9A6A");
+            return Color.parseColor("#A8D5A8");
+        } else if (minutes <= 240) {
+            return Color.parseColor("#78B878");
+        } else if (minutes <= 480) {
+            return Color.parseColor("#4A9A4A");
         } else {
-            return Color.parseColor("#2D7A4E");
+            return Color.parseColor("#2D7A2D");
         }
     }
 }

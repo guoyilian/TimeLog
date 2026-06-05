@@ -92,6 +92,21 @@
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp"
                         android:textStyle="bold"/>
+                        
+                    <TextView
+                        android:id="@+id/goto_day_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="24dp"
+                        android:layout_marginLeft="8dp"
+                        android:background="@drawable/btn_light_green_bg"
+                        android:gravity="center"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:text="查看详情"
+                        android:textColor="@color/white"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"/>
                 </LinearLayout>
             </LinearLayout>
 

@@ -528,11 +528,13 @@ public class RecordsFragment extends Fragment {
         TextView name = itemView.findViewById(R.id.record_name);
         TextView timeRange = itemView.findViewById(R.id.record_time);
         TextView duration = itemView.findViewById(R.id.record_duration);
+        TextView gotoDayBtn = itemView.findViewById(R.id.goto_day_btn);
 
         if (minutes <= 0) {
             name.setText(date);
             timeRange.setText("该天无记录");
             duration.setText("");
+            gotoDayBtn.setVisibility(View.GONE);
         } else {
             name.setText(date);
             timeRange.setText("当日计时");
@@ -544,6 +546,11 @@ public class RecordsFragment extends Fragment {
             } else {
                 duration.setText(mins + "分钟");
             }
+            gotoDayBtn.setVisibility(View.VISIBLE);
+            gotoDayBtn.setOnClickListener(v -> {
+                selectedDate = date;
+                switchSubView("day", -1, -1, true);
+            });
         }
 
         itemView.findViewById(R.id.timeline_dot).setBackgroundColor(getResources().getColor(R.color.accent));
