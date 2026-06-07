@@ -312,11 +312,13 @@ public class WeekBarChartView extends View {
         float x = event.getX();
         float y = event.getY();
 
-        // 查找当前点击位置对应的柱子索引
+        // 查找当前点击位置对应的柱子索引，并且只对有数据的柱子进行检测
         int clickedBarIndex = -1;
         for (int i = 0; i < barBoundsList.size(); i++) {
             RectF bounds = barBoundsList.get(i);
-            if (bounds.contains(x, y)) {
+            DayData data = dayDataList.get(i);
+            // 只有有数据的柱子才能被点击
+            if (bounds.contains(x, y) && data.minutes > 0) {
                 clickedBarIndex = i;
                 break;
             }
@@ -341,7 +343,7 @@ public class WeekBarChartView extends View {
 
             case MotionEvent.ACTION_UP:
                 if (touchedBarIndex != -1 && clickedBarIndex == touchedBarIndex) {
-                    // 手指在同一根柱子上抬起，执行回调
+                    // 手指在同一根柱子上抬起，执行回调（确保该柱子有数据）
                     final int finalIndex = touchedBarIndex;
                     final DayData finalData = dayDataList.get(finalIndex);
                     
@@ -349,15 +351,18 @@ public class WeekBarChartView extends View {
                     touchedBarIndex = -1;
                     invalidate();
                     
-                    // 延迟一小段时间后执行回调，确保交互效果完成
-                    postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (onBarClickListener != null) {
-                                onBarClickListener.onBarClick(finalData, finalIndex);
+                    // 只有有数据才执行回调
+                    if (finalData.minutes > 0) {
+                        // 延迟一小段时间后执行回调，确保交互效果完成
+                        postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (onBarClickListener != null) {
+                                    onBarClickListener.onBarClick(finalData, finalIndex);
+                                }
                             }
-                        }
-                    }, 100);
+                        }, 100);
+                    }
                 } else {
                     touchedBarIndex = -1;
                     invalidate();

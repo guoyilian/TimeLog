@@ -231,6 +231,12 @@
                             android:textColor="#5A7D5A"
                             android:layout_marginBottom="12dp"/>
 
+                        <com.example.timer.SolidPieChartView
+                            android:id="@+id/chart_stats_pie_chart"
+                            android:layout_width="match_parent"
+                            android:layout_height="220dp"
+                            android:layout_marginBottom="12dp"/>
+
                         <com.example.timer.FlowLayout
                             android:id="@+id/chart_stats_tags_layout"
                             android:layout_width="match_parent"

@@ -54,6 +54,7 @@ public class RecordsFragment extends Fragment {
     private FloatingActionButton fabAdd;
     private TextView chartStatsTitle;
     private com.example.timer.FlowLayout chartStatsTagsLayout;
+    private com.example.timer.SolidPieChartView chartStatsPieChart;
     
     private String selectedDate; // 选中的日期 yyyy-MM-dd，null 表示今天
     private static final String[] TASK_COLORS = {
@@ -115,6 +116,7 @@ public class RecordsFragment extends Fragment {
         chartTaskStatsCard = view.findViewById(R.id.chart_task_stats_card);
         chartStatsTitle = view.findViewById(R.id.chart_stats_title);
         chartStatsTagsLayout = view.findViewById(R.id.chart_stats_tags_layout);
+        chartStatsPieChart = view.findViewById(R.id.chart_stats_pie_chart);
 
         viewDay.setOnTouchListener((v, event) -> {
             dayAdapter.closeAllSwipeItems();
@@ -658,7 +660,8 @@ public class RecordsFragment extends Fragment {
             chartListHeader.setText("本周记录");
         }
 
-        for (int i = 0; i < 7; i++) {
+        // 倒序遍历，从周日（索引6）到周一（索引0）
+        for (int i = 6; i >= 0; i--) {
             if (dayMinutes[i] == 0) continue;
 
             final int dayIndex = i;
@@ -1184,8 +1187,18 @@ public class RecordsFragment extends Fragment {
         chartTaskStatsCard.setVisibility(View.VISIBLE);
         chartStatsTitle.setText(title);
 
+        // 先创建排序后的列表（按时间从大到小）
         List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(taskMinutes.entrySet());
         sortedList.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+
+        // 渲染饼图（使用排序后的相同顺序，确保颜色对应）
+        if (chartStatsPieChart != null) {
+            List<com.example.timer.SolidPieChartView.Slice> slices = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : sortedList) {
+                slices.add(new com.example.timer.SolidPieChartView.Slice(entry.getKey(), entry.getValue()));
+            }
+            chartStatsPieChart.setData(slices);
+        }
 
         int colorIndex = 0;
         for (Map.Entry<String, Integer> entry : sortedList) {
@@ -1194,8 +1207,9 @@ public class RecordsFragment extends Fragment {
             View colorDot = tagView.findViewById(R.id.tag_color_dot);
             TextView tagText = tagView.findViewById(R.id.tag_text);
 
-            String color = TASK_COLORS[colorIndex % TASK_COLORS.length];
-            colorDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor(color)));
+            // 使用与饼图相同的马卡龙色系
+            int color = com.example.timer.SolidPieChartView.COLORS[colorIndex % com.example.timer.SolidPieChartView.COLORS.length];
+            colorDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
 
             int mins = entry.getValue();
             int hours = mins / 60;
