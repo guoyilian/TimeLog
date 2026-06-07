@@ -16,10 +16,10 @@ public class SolidPieChartView extends View {
 
     private List<Slice> slices = new ArrayList<>();
     
-    // 公开的颜色数组，供外部使用
+    // 公开的颜色数组，供外部使用 - 马卡龙色系 (100%不透明)
     public static final int[] COLORS = {
-            0xDDFFB6C1, 0xDD98D8C8, 0xDDF7DC6F, 0xDDBB8FCE,
-            0xDD85C1E9, 0xDDF8B500, 0xDDF1948A, 0xDDD7BDE2
+            0xFF98D8C8, 0xFFFFB6C1, 0xFF85C1E9, 0xFFF7DC6F,
+            0xFFBB8FCE, 0xFFF8B500, 0xFFF1948A, 0xFFD7BDE2
     };
     
     private int[] colors = COLORS;
