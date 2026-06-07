@@ -127,29 +127,32 @@ public class SolidPieChartView extends View {
             // 绘制实心扇区
             canvas.drawArc(rectF, startAngle, sweepAngle, true, slicePaint);
             
-            // 计算扇区中心角度
-            float midAngle = startAngle + sweepAngle / 2;
-            double radian = Math.toRadians(midAngle);
-            
-            // 计算标签位置（在扇区内部，半径的 65% 处）
-            float labelRadius = radius * 0.65f;
-            float labelX = (float) (centerX + labelRadius * Math.cos(radian));
-            float labelY = (float) (centerY + labelRadius * Math.sin(radian));
-            
-            // 绘制标签（百分比）
-            String label = String.format("%.0f%%", slice.percentage);
-            textPaint.setTextSize(spToPx(12));
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            
-            // 处理过长的名称，最多显示3个字符，超出部分用省略号
-            String displayName = slice.name;
-            if (slice.name.length() > 3) {
-                displayName = slice.name.substring(0, 3) + "…";
+            // 只有占比大于等于 3% 的扇区才显示标签，避免重叠
+            if (slice.percentage >= 3) {
+                // 计算扇区中心角度
+                float midAngle = startAngle + sweepAngle / 2;
+                double radian = Math.toRadians(midAngle);
+                
+                // 计算标签位置（在扇区内部，半径的 65% 处）
+                float labelRadius = radius * 0.65f;
+                float labelX = (float) (centerX + labelRadius * Math.cos(radian));
+                float labelY = (float) (centerY + labelRadius * Math.sin(radian));
+                
+                // 绘制标签（百分比）
+                String label = String.format("%.0f%%", slice.percentage);
+                textPaint.setTextSize(spToPx(12));
+                textPaint.setTextAlign(Paint.Align.CENTER);
+                
+                // 处理过长的名称，最多显示3个字符，超出部分用省略号
+                String displayName = slice.name;
+                if (slice.name.length() > 3) {
+                    displayName = slice.name.substring(0, 3) + "…";
+                }
+                
+                // 先绘制名称，再绘制百分比
+                canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
+                canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
             }
-            
-            // 先绘制名称，再绘制百分比
-            canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
-            canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
             
             startAngle += sweepAngle;
             colorIndex++;
