@@ -13,18 +13,18 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WeekBarChartView extends View {
+public class WeekBarChartView extends BaseChartView {
 
     private float[] yAxisLabels;
-    private float maxYValue = 12f;
+    private float maxYValue;
 
     private Paint barPaint;
     private Paint gridPaint;
     private Paint textPaint;
 
-    private List<DayData> dayDataList = new ArrayList<>();
-    private List<RectF> barBoundsList = new ArrayList<>();
-    private int totalMinutes = 0;
+    private List<DayData> dayDataList;
+    private List<RectF> barBoundsList;
+    private int totalMinutes;
 
     private int paddingLeft;
     private int paddingRight;
@@ -36,10 +36,9 @@ public class WeekBarChartView extends View {
 
     private OnBarClickListener onBarClickListener;
 
-    // 点击交互效果相关
-    private int touchedBarIndex = -1; // 记录当前按下的柱子索引
-    private Paint pressedBarPaint; // 按下状态的画笔
-    private static final int PRESS_EXPAND_DP = 3; // 按下时柱子的扩展大小
+    private int touchedBarIndex = -1;
+    private Paint pressedBarPaint;
+    private static final int PRESS_EXPAND_DP = 3;
 
     public interface OnBarClickListener {
         void onBarClick(DayData dayData, int index);
@@ -48,7 +47,7 @@ public class WeekBarChartView extends View {
     public static class DayData {
         public String dayOfWeek;
         public String date;
-        public String fullDate; // 完整日期字符串 yyyy-MM-dd
+        public String fullDate;
         public int minutes;
         public String taskType;
 
@@ -63,17 +62,14 @@ public class WeekBarChartView extends View {
 
     public WeekBarChartView(Context context) {
         super(context);
-        init();
     }
 
     public WeekBarChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
     }
 
     public WeekBarChartView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
     }
 
     public void setOnBarClickListener(OnBarClickListener listener) {
@@ -85,30 +81,30 @@ public class WeekBarChartView extends View {
         invalidate();
     }
 
-    private void init() {
-        barPaint = new Paint();
+    @Override
+    protected void init(AttributeSet attrs) {
+        dayDataList = new ArrayList<>();
+        barBoundsList = new ArrayList<>();
+        totalMinutes = 0;
+
+        barPaint = createPaint();
         barPaint.setColor(Color.parseColor("#6A9974"));
         barPaint.setStyle(Paint.Style.FILL);
-        barPaint.setAntiAlias(true);
 
-        pressedBarPaint = new Paint();
-        pressedBarPaint.setColor(Color.parseColor("#4A7D5A")); // 更深的颜色
+        pressedBarPaint = createPaint();
+        pressedBarPaint.setColor(Color.parseColor("#4A7D5A"));
         pressedBarPaint.setStyle(Paint.Style.FILL);
-        pressedBarPaint.setAntiAlias(true);
 
-        gridPaint = new Paint();
+        gridPaint = createPaint();
         gridPaint.setColor(Color.parseColor("#EEEEEE"));
         gridPaint.setStrokeWidth(1);
         gridPaint.setStyle(Paint.Style.STROKE);
-        gridPaint.setAntiAlias(true);
 
-        textPaint = new Paint();
+        textPaint = createPaint();
         textPaint.setColor(Color.parseColor("#666666"));
         textPaint.setTextSize(spToPx(11));
-        textPaint.setAntiAlias(true);
         textPaint.setTextAlign(Paint.Align.CENTER);
 
-        // 初始化默认的纵坐标刻度
         calculateYAxisLabels(12f);
         updatePaddings();
     }
@@ -127,7 +123,7 @@ public class WeekBarChartView extends View {
 
         paddingLeft = (int) maxLabelWidth + dpToPx(12);
         paddingRight = dpToPx(8);
-        paddingTop = dpToPx(46);
+        paddingTop = dpToPx(100);
         paddingBottom = dpToPx(28);
     }
 
@@ -188,16 +184,7 @@ public class WeekBarChartView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
-
-        if (heightMode == MeasureSpec.EXACTLY) {
-            setMeasuredDimension(width, heightSize);
-        } else {
-            int defaultHeight = dpToPx(240);
-            setMeasuredDimension(width, defaultHeight);
-        }
+        measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 240);
     }
 
     @Override
@@ -221,20 +208,63 @@ public class WeekBarChartView extends View {
     private void drawTitle(Canvas canvas) {
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        String text;
+        String prefix = "本周总时长：";
+
+        Paint prefixPaint = new Paint();
+        prefixPaint.setColor(Color.parseColor("#5A7D5A"));
+        prefixPaint.setTextSize(spToPx(14));
+        prefixPaint.setFakeBoldText(true);
+        prefixPaint.setAntiAlias(true);
+        prefixPaint.setTextAlign(Paint.Align.CENTER);
+
+        float prefixY = dpToPx(24);
+        canvas.drawText(prefix, getWidth() / 2f, prefixY, prefixPaint);
+
+        Paint numPaint = new Paint();
+        numPaint.setColor(Color.parseColor("#5A7D5A"));
+        numPaint.setTextSize(spToPx(36));
+        numPaint.setFakeBoldText(true);
+        numPaint.setAntiAlias(true);
+        numPaint.setTextAlign(Paint.Align.LEFT);
+
+        Paint unitPaint = new Paint();
+        unitPaint.setColor(Color.parseColor("#5A7D5A"));
+        unitPaint.setTextSize(spToPx(18));
+        unitPaint.setFakeBoldText(false);
+        unitPaint.setAntiAlias(true);
+        unitPaint.setTextAlign(Paint.Align.LEFT);
+
+        String hourStr = String.valueOf(hours);
+        String hourUnit = "小时";
+        String minStr = String.valueOf(mins);
+        String minUnit = "分钟";
+
+        float hourWidth = numPaint.measureText(hourStr);
+        float hourUnitWidth = unitPaint.measureText(hourUnit);
+        float minWidth = numPaint.measureText(minStr);
+        float minUnitWidth = unitPaint.measureText(minUnit);
+        float gap = dpToPx(6);
+
+        float totalWidth;
         if (hours > 0) {
-            text = "本周总时长：" + hours + "小时" + mins + "分钟";
+            totalWidth = hourWidth + gap + hourUnitWidth + gap + minWidth + gap + minUnitWidth;
         } else {
-            text = "本周总时长：" + mins + "分钟";
+            totalWidth = minWidth + gap + minUnitWidth;
         }
 
-        Paint titlePaint = new Paint();
-        titlePaint.setColor(Color.parseColor("#5A7D5A"));
-        titlePaint.setTextSize(spToPx(14));
-        titlePaint.setFakeBoldText(true);
-        titlePaint.setAntiAlias(true);
-        titlePaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(text, getWidth() / 2f, dpToPx(28), titlePaint);
+        float baselineY = dpToPx(80);
+        float startX = (getWidth() - totalWidth) / 2;
+
+        if (hours > 0) {
+            canvas.drawText(hourStr, startX, baselineY, numPaint);
+            canvas.drawText(hourUnit, startX + hourWidth + gap, baselineY, unitPaint);
+            float afterHour = startX + hourWidth + gap + hourUnitWidth + gap;
+            canvas.drawText(minStr, afterHour, baselineY, numPaint);
+            canvas.drawText(minUnit, afterHour + minWidth + gap, baselineY, unitPaint);
+        } else {
+            canvas.drawText(minStr, startX, baselineY, numPaint);
+            canvas.drawText(minUnit, startX + minWidth + gap, baselineY, unitPaint);
+        }
     }
 
     private void drawGrid(Canvas canvas) {
@@ -408,14 +438,6 @@ public class WeekBarChartView extends View {
             float y = paddingTop + chartHeight + dpToPx(16);
             canvas.drawText(data.dayOfWeek, centerX, y, labelPaint);
         }
-    }
-
-    private int dpToPx(int dp) {
-        return (int) (dp * getResources().getDisplayMetrics().density);
-    }
-
-    private int spToPx(int sp) {
-        return (int) (sp * getResources().getDisplayMetrics().scaledDensity);
     }
 }
 

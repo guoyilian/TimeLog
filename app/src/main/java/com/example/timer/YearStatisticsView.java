@@ -133,15 +133,9 @@ public class YearStatisticsView extends LinearLayout {
         }
 
         for (TimerRecord record : records) {
-            if (record.getStart() != null && record.getStart().length() >= 4) {
-                try {
-                    int year = Integer.parseInt(record.getStart().substring(0, 4));
-                    if (!years.contains(year)) {
-                        years.add(year);
-                    }
-                } catch (NumberFormatException e) {
-                    e.printStackTrace();
-                }
+            int year = DateUtils.getYear(record.getStart());
+            if (!years.contains(year)) {
+                years.add(year);
             }
         }
 
@@ -173,16 +167,18 @@ public class YearStatisticsView extends LinearLayout {
             return 0;
         }
 
-        String yearStr = String.format("%04d", year);
+        long yearStart = DateUtils.getYearStartMillis(year);
+        long yearEnd = DateUtils.getYearEndMillis(year);
         int count = 0;
-        String lastDate = "";
+        long lastDayStart = -1;
 
         for (TimerRecord record : records) {
-            if (record.getStart() != null && record.getStart().startsWith(yearStr)) {
-                String date = record.getStart().substring(0, 10);
-                if (!date.equals(lastDate)) {
+            long start = record.getStart();
+            if (start >= yearStart && start <= yearEnd) {
+                long dayStart = DateUtils.getDayStartMillis(start);
+                if (dayStart != lastDayStart) {
                     count++;
-                    lastDate = date;
+                    lastDayStart = dayStart;
                 }
             }
         }
@@ -195,11 +191,13 @@ public class YearStatisticsView extends LinearLayout {
             return 0;
         }
 
-        String yearStr = String.format("%04d", year);
+        long yearStart = DateUtils.getYearStartMillis(year);
+        long yearEnd = DateUtils.getYearEndMillis(year);
         int total = 0;
 
         for (TimerRecord record : records) {
-            if (record.getStart() != null && record.getStart().startsWith(yearStr)) {
+            long start = record.getStart();
+            if (start >= yearStart && start <= yearEnd) {
                 total += record.getDurationMin();
             }
         }

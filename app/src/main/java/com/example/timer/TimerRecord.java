@@ -6,8 +6,8 @@ import java.util.UUID;
 public class TimerRecord implements Serializable {
     private String id;
     private String name;
-    private String start;
-    private String end;
+    private long start;
+    private long end;
     private String duration;
     private int durationMin;
 
@@ -15,7 +15,7 @@ public class TimerRecord implements Serializable {
         this.id = UUID.randomUUID().toString();
     }
 
-    public TimerRecord(String name, String start, String end, String duration, int durationMin) {
+    public TimerRecord(String name, long start, long end, String duration, int durationMin) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
         this.start = start;
@@ -28,10 +28,10 @@ public class TimerRecord implements Serializable {
     public void setId(String id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
-    public String getStart() { return start; }
-    public void setStart(String start) { this.start = start; }
-    public String getEnd() { return end; }
-    public void setEnd(String end) { this.end = end; }
+    public long getStart() { return start; }
+    public void setStart(long start) { this.start = start; }
+    public long getEnd() { return end; }
+    public void setEnd(long end) { this.end = end; }
     public String getDuration() { return duration; }
     public void setDuration(String duration) { this.duration = duration; }
     public int getDurationMin() { return durationMin; }

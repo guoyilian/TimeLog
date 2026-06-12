@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-public class YearHeatmapView extends View {
+public class YearHeatmapView extends BaseChartView {
     public interface OnMonthClickListener {
         void onMonthClick(int year, int month);
     }
@@ -30,18 +30,16 @@ public class YearHeatmapView extends View {
 
     private int currentYear;
     private List<TimerRecord> allRecords;
-    private DisplayMetrics displayMetrics;
     private OnMonthClickListener monthClickListener;
 
-    private List<MonthRect> monthRects = new ArrayList<>();
+    private List<MonthRect> monthRects;
 
-    private int clickedMonth = -1;
-    private float clickScale = 1f;
+    private int clickedMonth;
+    private float clickScale;
     private ValueAnimator clickAnimator;
-    private boolean isPressed = false;
+    private boolean isPressed;
 
-    private String[] monthNames = {"1 月", "2 月", "3 月", "4 月", "5 月", "6 月",
-                                   "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"};
+    private String[] monthNames;
 
     private static class MonthRect {
         int month;
@@ -57,51 +55,46 @@ public class YearHeatmapView extends View {
 
     public YearHeatmapView(Context context) {
         super(context);
-        init(context);
     }
 
     public YearHeatmapView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
     }
 
-    private void init(Context context) {
-        displayMetrics = context.getResources().getDisplayMetrics();
+    @Override
+    protected void init(AttributeSet attrs) {
+        monthRects = new ArrayList<>();
+        clickedMonth = -1;
+        clickScale = 1f;
+        isPressed = false;
+        monthNames = new String[]{"1 月", "2 月", "3 月", "4 月", "5 月", "6 月",
+                                   "7 月", "8 月", "9 月", "10 月", "11 月", "12 月"};
 
-        textPaint = new Paint();
+        textPaint = createPaint();
         textPaint.setColor(Color.parseColor("#333333"));
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setFakeBoldText(true);
-        textPaint.setAntiAlias(true);
 
-        cellPaint = new Paint();
+        cellPaint = createPaint();
         cellPaint.setStyle(Paint.Style.FILL);
-        cellPaint.setAntiAlias(true);
 
-        disabledCellPaint = new Paint();
+        disabledCellPaint = createPaint();
         disabledCellPaint.setColor(Color.parseColor("#F5F5F5"));
         disabledCellPaint.setStyle(Paint.Style.FILL);
-        disabledCellPaint.setAntiAlias(true);
 
-        highlightPaint = new Paint();
+        highlightPaint = createPaint();
         highlightPaint.setColor(Color.parseColor("#8EB88E"));
         highlightPaint.setStyle(Paint.Style.FILL);
-        highlightPaint.setAntiAlias(true);
 
-        borderHighlightPaint = new Paint();
+        borderHighlightPaint = createPaint();
         borderHighlightPaint.setColor(Color.parseColor("#4A9A6A"));
         borderHighlightPaint.setStyle(Paint.Style.STROKE);
         borderHighlightPaint.setStrokeWidth(dpToPx(3));
-        borderHighlightPaint.setAntiAlias(true);
 
         Calendar calendar = Calendar.getInstance();
         currentYear = calendar.get(Calendar.YEAR);
 
         setClickable(true);
-    }
-
-    private float dpToPx(float dp) {
-        return dp * displayMetrics.density;
     }
 
     public void setOnMonthClickListener(OnMonthClickListener listener) {
@@ -328,11 +321,13 @@ public class YearHeatmapView extends View {
             return 0;
         }
 
-        String targetDate = String.format("%04d-%02d-%02d", currentYear, month + 1, day);
+        long targetDayStart = DateUtils.getSpecificDayStartMillis(currentYear, month, day);
+        long targetDayEnd = targetDayStart + 24L * 60 * 60 * 1000;
         int totalMinutes = 0;
 
         for (TimerRecord record : allRecords) {
-            if (record.getStart() != null && record.getStart().startsWith(targetDate)) {
+            long start = record.getStart();
+            if (start >= targetDayStart && start < targetDayEnd) {
                 totalMinutes += record.getDurationMin();
             }
         }

@@ -88,15 +88,9 @@ public class DayRecordsAdapter extends RecyclerView.Adapter<DayRecordsAdapter.Vi
         TimerRecord record = records.get(position);
 
         holder.name.setText(record.getName());
-        String start = record.getStart();
-        String end = record.getEnd();
-        if (start.contains(" ")) {
-            start = start.split(" ")[1];
-        }
-        if (end.contains(" ")) {
-            end = end.split(" ")[1];
-        }
-        holder.timeRange.setText(start + " - " + end);
+        long start = record.getStart();
+        long end = record.getEnd();
+        holder.timeRange.setText(DateUtils.formatTime(start) + " - " + DateUtils.formatTime(end));
         int minutes = record.getDurationMin();
         int hours = minutes / 60;
         int mins = minutes % 60;

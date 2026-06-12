@@ -45,4 +45,30 @@
     
     <color name="grey_light">#F5F5F5</color>
     <color name="divider">#E8E8E8</color>
+
+    <!-- Pie chart - ring style (deep green) -->
+    <color name="pie_ring_1">#4A7A56</color>
+    <color name="pie_ring_2">#6A9974</color>
+    <color name="pie_ring_3">#8FB899</color>
+    <color name="pie_ring_4">#A3C6A8</color>
+    <color name="pie_ring_5">#558B6E</color>
+    <color name="pie_ring_6">#7AAB8E</color>
+    <color name="pie_ring_7">#9CC0AA</color>
+    <color name="pie_ring_8">#BCD5C4</color>
+
+    <!-- Pie chart - solid style (macaron colors) -->
+    <color name="pie_solid_1">#98D8C8</color>
+    <color name="pie_solid_2">#FFB6C1</color>
+    <color name="pie_solid_3">#85C1E9</color>
+    <color name="pie_solid_4">#F7DC6F</color>
+    <color name="pie_solid_5">#BB8FCE</color>
+    <color name="pie_solid_6">#F8B500</color>
+    <color name="pie_solid_7">#F1948A</color>
+    <color name="pie_solid_8">#D7BDE2</color>
+
+    <!-- Pie chart - common colors -->
+    <color name="pie_text_dark">#333333</color>
+    <color name="pie_text_secondary">#999999</color>
+    <color name="pie_empty_ring">#EEEEEE</color>
+    <color name="pie_empty_solid">#E0E0E0</color>
 </resources>

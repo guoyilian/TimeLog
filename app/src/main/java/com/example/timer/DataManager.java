@@ -3,7 +3,9 @@ package com.example.timer;
 import android.content.Context;
 import android.content.SharedPreferences;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +24,35 @@ public class DataManager {
     public List<TimerRecord> getRecords() {
         String json = prefs.getString(RECORDS_KEY, "[]");
         Type type = new TypeToken<ArrayList<TimerRecord>>() {}.getType();
-        return gson.fromJson(json, type);
+        try {
+            return gson.fromJson(json, type);
+        } catch (JsonSyntaxException e) {
+            return migrateFromLegacyFormat(json);
+        }
+    }
+
+    private List<TimerRecord> migrateFromLegacyFormat(String json) {
+        Type legacyType = new TypeToken<ArrayList<LegacyTimerRecord>>() {}.getType();
+        try {
+            List<LegacyTimerRecord> legacyRecords = gson.fromJson(json, legacyType);
+            List<TimerRecord> newRecords = new ArrayList<>();
+            for (LegacyTimerRecord legacy : legacyRecords) {
+                long start = DateUtils.parseDateTime(legacy.start);
+                long end = DateUtils.parseDateTime(legacy.end);
+                TimerRecord record = new TimerRecord();
+                record.setId(legacy.id);
+                record.setName(legacy.name);
+                record.setStart(start);
+                record.setEnd(end);
+                record.setDuration(legacy.duration);
+                record.setDurationMin(legacy.durationMin);
+                newRecords.add(record);
+            }
+            saveRecords(newRecords);
+            return newRecords;
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     public void saveRecords(List<TimerRecord> records) {
@@ -71,5 +101,14 @@ public class DataManager {
             }
         }
         saveRecords(records);
+    }
+
+    private static class LegacyTimerRecord implements Serializable {
+        String id;
+        String name;
+        String start;
+        String end;
+        String duration;
+        int durationMin;
     }
 }

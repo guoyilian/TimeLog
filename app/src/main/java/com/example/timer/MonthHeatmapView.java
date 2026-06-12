@@ -17,7 +17,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-public class MonthHeatmapView extends View {
+public class MonthHeatmapView extends BaseChartView {
 
     public interface OnCellClickListener {
         void onCellClick(String date, int day, int minutes);
@@ -54,18 +54,18 @@ public class MonthHeatmapView extends View {
 
     private OnCellClickListener cellClickListener;
 
-    private int highlightRow = -1;
-    private int highlightCol = -1;
-    private float highlightAlpha = 0f;
+    private int highlightRow;
+    private int highlightCol;
+    private float highlightAlpha;
     private ValueAnimator highlightAnimator;
 
-    private int rippleRow = -1;
-    private int rippleCol = -1;
-    private float rippleProgress = 0f;
+    private int rippleRow;
+    private int rippleCol;
+    private float rippleProgress;
     private ValueAnimator rippleAnimator;
 
-    private int selectedRow = -1;
-    private int selectedCol = -1;
+    private int selectedRow;
+    private int selectedCol;
 
     private static class CellData {
         int row;
@@ -87,51 +87,58 @@ public class MonthHeatmapView extends View {
 
     public MonthHeatmapView(Context context) {
         super(context);
-        init();
     }
 
     public MonthHeatmapView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
     }
 
     public MonthHeatmapView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
     }
 
-    private void init() {
+    @Override
+    protected void init(AttributeSet attrs) {
+        highlightRow = -1;
+        highlightCol = -1;
+        highlightAlpha = 0f;
+        rippleRow = -1;
+        rippleCol = -1;
+        rippleProgress = 0f;
+        selectedRow = -1;
+        selectedCol = -1;
+
         setClickable(true);
 
-        titlePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        titlePaint = createPaint();
         titlePaint.setColor(Color.parseColor("#5A7D5A"));
         titlePaint.setTextSize(spToPx(14));
         titlePaint.setFakeBoldText(true);
         titlePaint.setTextAlign(Paint.Align.CENTER);
 
-        weekdayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        weekdayPaint = createPaint();
         weekdayPaint.setColor(Color.parseColor("#666666"));
         weekdayPaint.setTextSize(spToPx(12));
         weekdayPaint.setTextAlign(Paint.Align.CENTER);
 
-        dayNumberPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        dayNumberPaint = createPaint();
         dayNumberPaint.setColor(Color.parseColor("#333333"));
         dayNumberPaint.setTextSize(spToPx(11));
         dayNumberPaint.setTextAlign(Paint.Align.CENTER);
 
-        leftDayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        leftDayPaint = createPaint();
         leftDayPaint.setColor(Color.parseColor("#999999"));
         leftDayPaint.setTextSize(spToPx(10));
         leftDayPaint.setTextAlign(Paint.Align.RIGHT);
 
-        cellPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        cellPaint = createPaint();
         cellPaint.setStyle(Paint.Style.FILL);
 
-        highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        highlightPaint = createPaint();
         highlightPaint.setStyle(Paint.Style.FILL);
         highlightPaint.setColor(Color.parseColor("#40000000"));
 
-        ripplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        ripplePaint = createPaint();
         ripplePaint.setStyle(Paint.Style.FILL);
         ripplePaint.setColor(Color.parseColor("#8EB88E"));
 
@@ -215,9 +222,9 @@ public class MonthHeatmapView extends View {
 
         Paint.FontMetrics weekdayMetrics = weekdayPaint.getFontMetrics();
         float weekdayBlockHeight = -weekdayMetrics.ascent + weekdayMetrics.descent;
-        float gridAreaTop = dpToPx(48) + weekdayBlockHeight + cellGap;
-        float gridAreaBottom = viewHeight - dpToPx(8);
-        float availableGridHeight = gridAreaBottom - gridAreaTop;
+        float minGridAreaTop = dpToPx(115) + weekdayBlockHeight + cellGap;
+        float gridAreaBottom = viewHeight - dpToPx(2);
+        float availableGridHeight = gridAreaBottom - minGridAreaTop;
         if (availableGridHeight <= 0) return;
 
         float cellSizeByHeight = (availableGridHeight - cellGap * (GRID_ROWS - 1)) / GRID_ROWS;
@@ -226,8 +233,9 @@ public class MonthHeatmapView extends View {
         if (cellSize <= 0) return;
 
         float gridWidth = GRID_COLUMNS * cellSize + cellGap * (GRID_COLUMNS - 1);
+        float actualGridHeight = GRID_ROWS * cellSize + cellGap * (GRID_ROWS - 1);
         gridStartX = (viewWidth - gridWidth) / 2f;
-        gridStartY = gridAreaTop;
+        gridStartY = gridAreaBottom - actualGridHeight;
 
         cells.clear();
         int day = 1;
@@ -260,14 +268,63 @@ public class MonthHeatmapView extends View {
 
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        String durationText;
+        String prefix = year + "年" + month + "月 总时长：";
+
+        Paint prefixPaint = new Paint();
+        prefixPaint.setColor(Color.parseColor("#5A7D5A"));
+        prefixPaint.setTextSize(spToPx(14));
+        prefixPaint.setFakeBoldText(true);
+        prefixPaint.setAntiAlias(true);
+        prefixPaint.setTextAlign(Paint.Align.CENTER);
+
+        float prefixY = dpToPx(24);
+        canvas.drawText(prefix, getWidth() / 2f, prefixY, prefixPaint);
+
+        Paint numPaint = new Paint();
+        numPaint.setColor(Color.parseColor("#5A7D5A"));
+        numPaint.setTextSize(spToPx(36));
+        numPaint.setFakeBoldText(true);
+        numPaint.setAntiAlias(true);
+        numPaint.setTextAlign(Paint.Align.LEFT);
+
+        Paint unitPaint = new Paint();
+        unitPaint.setColor(Color.parseColor("#5A7D5A"));
+        unitPaint.setTextSize(spToPx(18));
+        unitPaint.setFakeBoldText(false);
+        unitPaint.setAntiAlias(true);
+        unitPaint.setTextAlign(Paint.Align.LEFT);
+
+        String hourStr = String.valueOf(hours);
+        String hourUnit = "小时";
+        String minStr = String.valueOf(mins);
+        String minUnit = "分钟";
+
+        float hourWidth = numPaint.measureText(hourStr);
+        float hourUnitWidth = unitPaint.measureText(hourUnit);
+        float minWidth = numPaint.measureText(minStr);
+        float minUnitWidth = unitPaint.measureText(minUnit);
+        float gap = dpToPx(6);
+
+        float totalWidth;
         if (hours > 0) {
-            durationText = hours + "小时" + mins + "分钟";
+            totalWidth = hourWidth + gap + hourUnitWidth + gap + minWidth + gap + minUnitWidth;
         } else {
-            durationText = mins + "分钟";
+            totalWidth = minWidth + gap + minUnitWidth;
         }
-        String title = year + "年" + month + "月 总时长：" + durationText;
-        canvas.drawText(title, getWidth() / 2f, dpToPx(32), titlePaint);
+
+        float baselineY = dpToPx(80);
+        float startX = (getWidth() - totalWidth) / 2;
+
+        if (hours > 0) {
+            canvas.drawText(hourStr, startX, baselineY, numPaint);
+            canvas.drawText(hourUnit, startX + hourWidth + gap, baselineY, unitPaint);
+            float afterHour = startX + hourWidth + gap + hourUnitWidth + gap;
+            canvas.drawText(minStr, afterHour, baselineY, numPaint);
+            canvas.drawText(minUnit, afterHour + minWidth + gap, baselineY, unitPaint);
+        } else {
+            canvas.drawText(minStr, startX, baselineY, numPaint);
+            canvas.drawText(minUnit, startX + minWidth + gap, baselineY, unitPaint);
+        }
 
         String[] weekdays = {"日", "一", "二", "三", "四", "五", "六"};
 
@@ -526,13 +583,5 @@ public class MonthHeatmapView extends View {
     private void stopAllAnimations() {
         stopRippleAnimation();
         stopHighlightAnimation();
-    }
-
-    private float dpToPx(float dp) {
-        return dp * getResources().getDisplayMetrics().density;
-    }
-
-    private float spToPx(float sp) {
-        return sp * getResources().getDisplayMetrics().scaledDensity;
     }
 }

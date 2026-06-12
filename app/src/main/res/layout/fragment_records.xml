@@ -109,16 +109,36 @@
 
                 </androidx.cardview.widget.CardView>
 
-                <TextView
-                    android:id="@+id/list_header"
+                <LinearLayout
+                    android:id="@+id/list_header_container"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="今日记录"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="#5A7D5A"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginTop="@dimen/spacing_s"
-                    android:layout_marginBottom="@dimen/spacing_s"/>
+                    android:layout_marginBottom="@dimen/spacing_s">
+
+                    <TextView
+                        android:id="@+id/list_header"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="今日记录"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#5A7D5A"/>
+
+                    <TextView
+                        android:id="@+id/list_header_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" | 0次计时"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#5A7D5A"
+                        android:layout_marginLeft="4dp"
+                        android:layout_marginStart="4dp"/>
+
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/day_timeline_list"
@@ -231,10 +251,11 @@
                             android:textColor="#5A7D5A"
                             android:layout_marginBottom="12dp"/>
 
-                        <com.example.timer.SolidPieChartView
+                        <com.example.timer.PieChartView
                             android:id="@+id/chart_stats_pie_chart"
                             android:layout_width="match_parent"
                             android:layout_height="220dp"
+                            app:ringStyle="false"
                             android:layout_marginBottom="12dp"/>
 
                         <com.example.timer.FlowLayout

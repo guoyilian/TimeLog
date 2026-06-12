@@ -6,22 +6,23 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DayLineChartView extends View {
+public class DayLineChartView extends BaseChartView {
 
     private static final float DEFAULT_X_AXIS_START = 0f;
     private static final float DEFAULT_X_AXIS_END = 24f;
 
-    private float xAxisStart = DEFAULT_X_AXIS_START;
-    private float xAxisEnd = DEFAULT_X_AXIS_END;
-    private float xAxisRange = xAxisEnd - xAxisStart;
+    private float xAxisStart;
+    private float xAxisEnd;
+    private float xAxisRange;
 
-    private List<DataPoint> dataPoints = new ArrayList<>();
+    private List<DataPoint> dataPoints;
     private Paint linePaint;
     private Paint fillPaint;
     private Paint gridPaint;
@@ -34,8 +35,8 @@ public class DayLineChartView extends View {
     private Path linePath;
     private Path fillPath;
 
-    private float[] xAxisLabelHours = {0f, 6f, 12f, 18f, 24f};
-    private String[] xAxisLabels = {"00:00", "06:00", "12:00", "18:00", "24:00"};
+    private float[] xAxisLabelHours;
+    private String[] xAxisLabels;
 
     private float chartWidth;
     private float chartHeight;
@@ -47,10 +48,10 @@ public class DayLineChartView extends View {
     private float paddingTop;
     private float paddingBottom;
 
-    private float maxYValue = 60f;
+    private float maxYValue;
     private float[] yAxisLabels;
-    private int totalMinutes = 0;
-    private String titlePrefix = "今日"; // 标题前缀，可自定义
+    private int totalMinutes;
+    private String titlePrefix;
 
     private boolean isTouching = false;
     private boolean isTooltipVisible = false;
@@ -76,73 +77,74 @@ public class DayLineChartView extends View {
 
     public DayLineChartView(Context context) {
         super(context);
-        init();
     }
 
     public DayLineChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
     }
 
     public DayLineChartView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        init();
     }
 
-    private void init() {
-        linePaint = new Paint();
+    @Override
+    protected void init(AttributeSet attrs) {
+        xAxisStart = DEFAULT_X_AXIS_START;
+        xAxisEnd = DEFAULT_X_AXIS_END;
+        xAxisRange = xAxisEnd - xAxisStart;
+        dataPoints = new ArrayList<>();
+        xAxisLabelHours = new float[]{0f, 6f, 12f, 18f, 24f};
+        xAxisLabels = new String[]{"00:00", "06:00", "12:00", "18:00", "24:00"};
+        maxYValue = 60f;
+        totalMinutes = 0;
+        titlePrefix = "今日";
+
+        linePaint = createPaint();
         linePaint.setColor(Color.parseColor("#6B9080"));
         linePaint.setStrokeWidth(dpToPx(2.5f));
         linePaint.setStyle(Paint.Style.STROKE);
-        linePaint.setAntiAlias(true);
         linePaint.setStrokeCap(Paint.Cap.ROUND);
         linePaint.setStrokeJoin(Paint.Join.ROUND);
 
-        fillPaint = new Paint();
+        fillPaint = createPaint();
         fillPaint.setColor(Color.parseColor("#99E6F4EA"));
         fillPaint.setStyle(Paint.Style.FILL);
-        fillPaint.setAntiAlias(true);
 
-        gridPaint = new Paint();
+        gridPaint = createPaint();
         gridPaint.setColor(Color.parseColor("#EEEEEE"));
         gridPaint.setStrokeWidth(dpToPx(1f));
         gridPaint.setStyle(Paint.Style.STROKE);
         gridPaint.setPathEffect(new DashPathEffect(new float[]{dpToPx(4), dpToPx(4)}, 0));
 
-        yTextPaint = new Paint();
+        yTextPaint = createPaint();
         yTextPaint.setColor(Color.parseColor("#666666"));
         yTextPaint.setTextSize(spToPx(11));
-        yTextPaint.setAntiAlias(true);
         yTextPaint.setTextAlign(Paint.Align.RIGHT);
 
-        xTextPaint = new Paint();
+        xTextPaint = createPaint();
         xTextPaint.setColor(Color.parseColor("#666666"));
         xTextPaint.setTextSize(spToPx(11));
-        xTextPaint.setAntiAlias(true);
         xTextPaint.setTextAlign(Paint.Align.CENTER);
 
-        tooltipPaint = new Paint();
+        tooltipPaint = createPaint();
         tooltipPaint.setColor(Color.TRANSPARENT);
         tooltipPaint.setStyle(Paint.Style.FILL);
-        tooltipPaint.setAntiAlias(true);
 
-        tooltipBorderPaint = new Paint();
+        tooltipBorderPaint = createPaint();
         tooltipBorderPaint.setColor(Color.parseColor("#CCCCCC"));
         tooltipBorderPaint.setStyle(Paint.Style.STROKE);
         tooltipBorderPaint.setStrokeWidth(dpToPx(1));
-        tooltipBorderPaint.setAntiAlias(true);
 
-        tooltipTextPaint = new Paint();
+        tooltipTextPaint = createPaint();
         tooltipTextPaint.setColor(Color.parseColor("#CCCCCC"));
         tooltipTextPaint.setTextSize(spToPx(11));
-        tooltipTextPaint.setAntiAlias(true);
         tooltipTextPaint.setTextAlign(Paint.Align.CENTER);
 
         linePath = new Path();
         fillPath = new Path();
 
         paddingRight = dpToPx(8);
-        paddingTop = dpToPx(46);
+        paddingTop = dpToPx(100);
         paddingBottom = dpToPx(28);
 
         initEmptyData();
@@ -228,27 +230,22 @@ public class DayLineChartView extends View {
             for (TimerRecord record : records) {
                 totalMinutes += record.getDurationMin();
 
-                String start = record.getStart();
-                String[] parts = start.split(" ");
-                if (parts.length >= 2) {
-                    String timePart = parts[1];
-                    String[] timeParts = timePart.split(":");
-                    int startHour = Integer.parseInt(timeParts[0]);
-                    int duration = record.getDurationMin();
-                    String recordName = record.getName();
+                long start = record.getStart();
+                int startHour = DateUtils.getHour(start);
+                int duration = record.getDurationMin();
+                String recordName = record.getName();
 
-                    int endHour = Math.min(24, startHour + (duration / 60) + 1);
-                    for (int h = startHour; h < endHour; h++) {
-                        if (h < xAxisStart || h > xAxisEnd) {
-                            continue;
-                        }
-                        hourMinutes[h] += duration;
-                        if (hourMinutes[h] > maxTime) {
-                            maxTime = hourMinutes[h];
-                        }
-                        if (hourLabels[h] == null || hourLabels[h].isEmpty()) {
-                            hourLabels[h] = recordName;
-                        }
+                int endHour = Math.min(24, startHour + (duration / 60) + 1);
+                for (int h = startHour; h < endHour; h++) {
+                    if (h < xAxisStart || h > xAxisEnd) {
+                        continue;
+                    }
+                    hourMinutes[h] += duration;
+                    if (hourMinutes[h] > maxTime) {
+                        maxTime = hourMinutes[h];
+                    }
+                    if (hourLabels[h] == null || hourLabels[h].isEmpty()) {
+                        hourLabels[h] = recordName;
                     }
                 }
             }
@@ -290,27 +287,9 @@ public class DayLineChartView extends View {
         chartWidth = plotWidth;
     }
 
-    private float spToPx(float sp) {
-        float density = getResources().getDisplayMetrics().scaledDensity;
-        return sp * density;
-    }
-
-    private float dpToPx(float dp) {
-        float density = getResources().getDisplayMetrics().density;
-        return dp * density;
-    }
-
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
-
-        if (heightMode == MeasureSpec.EXACTLY) {
-            setMeasuredDimension(width, heightSize);
-        } else {
-            setMeasuredDimension(width, (int) dpToPx(240));
-        }
+        measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 240);
     }
 
     @Override
@@ -340,20 +319,63 @@ public class DayLineChartView extends View {
     private void drawTitle(Canvas canvas) {
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        String text;
+        String prefix = titlePrefix + "总时长：";
+
+        Paint prefixPaint = new Paint();
+        prefixPaint.setColor(Color.parseColor("#5A7D5A"));
+        prefixPaint.setTextSize(spToPx(14));
+        prefixPaint.setFakeBoldText(true);
+        prefixPaint.setAntiAlias(true);
+        prefixPaint.setTextAlign(Paint.Align.CENTER);
+
+        float prefixY = dpToPx(24);
+        canvas.drawText(prefix, getWidth() / 2f, prefixY, prefixPaint);
+
+        Paint numPaint = new Paint();
+        numPaint.setColor(Color.parseColor("#5A7D5A"));
+        numPaint.setTextSize(spToPx(36));
+        numPaint.setFakeBoldText(true);
+        numPaint.setAntiAlias(true);
+        numPaint.setTextAlign(Paint.Align.LEFT);
+
+        Paint unitPaint = new Paint();
+        unitPaint.setColor(Color.parseColor("#5A7D5A"));
+        unitPaint.setTextSize(spToPx(18));
+        unitPaint.setFakeBoldText(false);
+        unitPaint.setAntiAlias(true);
+        unitPaint.setTextAlign(Paint.Align.LEFT);
+
+        String hourStr = String.valueOf(hours);
+        String hourUnit = "小时";
+        String minStr = String.valueOf(mins);
+        String minUnit = "分钟";
+
+        float hourWidth = numPaint.measureText(hourStr);
+        float hourUnitWidth = unitPaint.measureText(hourUnit);
+        float minWidth = numPaint.measureText(minStr);
+        float minUnitWidth = unitPaint.measureText(minUnit);
+        float gap = dpToPx(6);
+
+        float totalWidth;
         if (hours > 0) {
-            text = titlePrefix + "总时长：" + hours + "小时" + mins + "分钟";
+            totalWidth = hourWidth + gap + hourUnitWidth + gap + minWidth + gap + minUnitWidth;
         } else {
-            text = titlePrefix + "总时长：" + mins + "分钟";
+            totalWidth = minWidth + gap + minUnitWidth;
         }
 
-        Paint titlePaint = new Paint();
-        titlePaint.setColor(Color.parseColor("#5A7D5A"));
-        titlePaint.setTextSize(spToPx(14));
-        titlePaint.setFakeBoldText(true);
-        titlePaint.setAntiAlias(true);
-        titlePaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(text, getWidth() / 2f, dpToPx(28), titlePaint);
+        float baselineY = dpToPx(80);
+        float startX = (getWidth() - totalWidth) / 2;
+
+        if (hours > 0) {
+            canvas.drawText(hourStr, startX, baselineY, numPaint);
+            canvas.drawText(hourUnit, startX + hourWidth + gap, baselineY, unitPaint);
+            float afterHour = startX + hourWidth + gap + hourUnitWidth + gap;
+            canvas.drawText(minStr, afterHour, baselineY, numPaint);
+            canvas.drawText(minUnit, afterHour + minWidth + gap, baselineY, unitPaint);
+        } else {
+            canvas.drawText(minStr, startX, baselineY, numPaint);
+            canvas.drawText(minUnit, startX + minWidth + gap, baselineY, unitPaint);
+        }
     }
 
     private void drawGrid(Canvas canvas) {

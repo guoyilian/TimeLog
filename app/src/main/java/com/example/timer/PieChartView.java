@@ -1,6 +1,7 @@
 package com.example.timer;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -9,17 +10,28 @@ import android.view.View;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PieChartView extends View {
+public class PieChartView extends BaseChartView {
     private Paint slicePaint;
     private Paint textPaint;
-    private Paint percentPaint;
     private Paint centerPaint;
     private RectF rectF;
 
-    private List<Slice> slices = new ArrayList<>();
-    private int[] colors = {
+    private List<Slice> slices;
+    private int[] colors;
+
+    private boolean isRingStyle;
+    private int outerPadding;
+    private int minPercentageToShowLabel;
+    private int maxNameLength;
+
+    public static final int[] DEFAULT_RING_COLORS = {
             0xFF4A7A56, 0xFF6A9974, 0xFF8FB899, 0xFFA3C6A8,
             0xFF558B6E, 0xFF7AAB8E, 0xFF9CC0AA, 0xFFBCD5C4
+    };
+
+    public static final int[] DEFAULT_SOLID_COLORS = {
+            0xFF98D8C8, 0xFFFFB6C1, 0xFF85C1E9, 0xFFF7DC6F,
+            0xFFBB8FCE, 0xFFF8B500, 0xFFF1948A, 0xFFD7BDE2
     };
 
     public static class Slice {
@@ -35,44 +47,71 @@ public class PieChartView extends View {
 
     public PieChartView(Context context) {
         super(context);
-        init();
     }
 
     public PieChartView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
     }
 
     public PieChartView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
     }
 
-    private void init() {
-        slicePaint = new Paint();
-        slicePaint.setStyle(Paint.Style.FILL);
-        slicePaint.setAntiAlias(true);
+    @Override
+    protected void init(AttributeSet attrs) {
+        slices = new ArrayList<>();
 
-        textPaint = new Paint();
+        if (attrs != null) {
+            TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.PieChartView);
+            isRingStyle = a.getBoolean(R.styleable.PieChartView_ringStyle, true);
+            a.recycle();
+        } else {
+            isRingStyle = true;
+        }
+
+        if (isRingStyle) {
+            colors = DEFAULT_RING_COLORS;
+            outerPadding = (int) dpToPx(20);
+            minPercentageToShowLabel = 0;
+            maxNameLength = 4;
+        } else {
+            colors = DEFAULT_SOLID_COLORS;
+            outerPadding = (int) dpToPx(10);
+            minPercentageToShowLabel = 3;
+            maxNameLength = 3;
+        }
+
+        slicePaint = createPaint();
+        slicePaint.setStyle(Paint.Style.FILL);
+
+        textPaint = createPaint();
         textPaint.setColor(0xFF333333);
         textPaint.setTextSize(spToPx(12));
-        textPaint.setAntiAlias(true);
 
-        percentPaint = new Paint();
-        percentPaint.setColor(0xFF666666);
-        percentPaint.setTextSize(spToPx(10));
-        percentPaint.setAntiAlias(true);
-
-        centerPaint = new Paint();
-        centerPaint.setColor(0xFFFFFFFF);
-        centerPaint.setStyle(Paint.Style.FILL);
-        centerPaint.setAntiAlias(true);
+        centerPaint = createPaint(0xFFFFFFFF, Paint.Style.FILL);
 
         rectF = new RectF();
     }
 
-    private float spToPx(float sp) {
-        return sp * getContext().getResources().getDisplayMetrics().scaledDensity;
+    public void setRingStyle(boolean ringStyle) {
+        this.isRingStyle = ringStyle;
+        if (ringStyle) {
+            this.colors = DEFAULT_RING_COLORS;
+            this.outerPadding = (int) dpToPx(20);
+            this.minPercentageToShowLabel = 0;
+            this.maxNameLength = 4;
+        } else {
+            this.colors = DEFAULT_SOLID_COLORS;
+            this.outerPadding = (int) dpToPx(10);
+            this.minPercentageToShowLabel = 3;
+            this.maxNameLength = 3;
+        }
+        invalidate();
+    }
+
+    public void setColors(int[] colors) {
+        this.colors = colors != null ? colors : DEFAULT_RING_COLORS;
+        invalidate();
     }
 
     public void setData(List<Slice> data) {
@@ -93,20 +132,7 @@ public class PieChartView extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
-
-        if (heightMode == MeasureSpec.EXACTLY) {
-            setMeasuredDimension(width, heightSize);
-        } else {
-            int defaultHeight = (int) dpToPx(280);
-            setMeasuredDimension(width, defaultHeight);
-        }
-    }
-
-    private float dpToPx(float dp) {
-        return dp * getContext().getResources().getDisplayMetrics().density;
+        measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 280);
     }
 
     @Override
@@ -118,7 +144,7 @@ public class PieChartView extends View {
             return;
         }
 
-        int size = Math.min(getWidth(), getHeight()) - (int) dpToPx(20);
+        int size = Math.min(getWidth(), getHeight()) - outerPadding;
         int centerX = getWidth() / 2;
         int centerY = getHeight() / 2;
         int radius = size / 2;
@@ -128,64 +154,86 @@ public class PieChartView extends View {
         float startAngle = -90;
         int colorIndex = 0;
 
-        float innerRadius = radius * 0.48f;
+        float innerRadius = isRingStyle ? radius * 0.48f : 0;
 
         for (Slice slice : slices) {
             slicePaint.setColor(colors[colorIndex % colors.length]);
             float sweepAngle = slice.percentage * 3.6f;
-            
-            // 绘制扇区
+
             canvas.drawArc(rectF, startAngle, sweepAngle, true, slicePaint);
-            
-            // 计算扇区中心角度
-            float midAngle = startAngle + sweepAngle / 2;
-            double radian = Math.toRadians(midAngle);
-            
-            // 计算标签位置（在扇区内部，半径的 65% 处）
-            float labelRadius = innerRadius + (radius - innerRadius) * 0.65f;
-            float labelX = (float) (centerX + labelRadius * Math.cos(radian));
-            float labelY = (float) (centerY + labelRadius * Math.sin(radian));
-            
-            // 绘制标签（名称 + 百分比）
-            String label = String.format("%.0f%%", slice.percentage);
-            textPaint.setColor(0xFFFFFFFF);
-            textPaint.setTextSize(spToPx(11));
-            textPaint.setTextAlign(Paint.Align.CENTER);
-            
-            // 处理过长的名称，最多显示4个字符，超出部分用省略号
-            String displayName = slice.name;
-            if (slice.name.length() > 4) {
-                displayName = slice.name.substring(0, 4) + "…";
+
+            if (slice.percentage >= minPercentageToShowLabel) {
+                float midAngle = startAngle + sweepAngle / 2;
+                double radian = Math.toRadians(midAngle);
+
+                float labelRadius;
+                if (isRingStyle) {
+                    labelRadius = innerRadius + (radius - innerRadius) * 0.65f;
+                } else {
+                    labelRadius = radius * 0.65f;
+                }
+                float labelX = (float) (centerX + labelRadius * Math.cos(radian));
+                float labelY = (float) (centerY + labelRadius * Math.sin(radian));
+
+                String label = String.format("%.0f%%", slice.percentage);
+
+                if (isRingStyle) {
+                    textPaint.setColor(0xFFFFFFFF);
+                    textPaint.setTextSize(spToPx(11));
+                } else {
+                    textPaint.setColor(0xFF333333);
+                    textPaint.setTextSize(spToPx(12));
+                }
+                textPaint.setTextAlign(Paint.Align.CENTER);
+
+                String displayName = slice.name;
+                if (slice.name != null && slice.name.length() > maxNameLength) {
+                    displayName = slice.name.substring(0, maxNameLength) + "…";
+                }
+
+                canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
+                canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
             }
-            
-            // 先绘制名称，再绘制百分比
-            canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
-            canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
-            
+
             startAngle += sweepAngle;
             colorIndex++;
         }
 
-        centerPaint.setColor(0xFFFFFFFF);
-        canvas.drawCircle(centerX, centerY, innerRadius, centerPaint);
+        if (isRingStyle) {
+            centerPaint.setColor(0xFFFFFFFF);
+            canvas.drawCircle(centerX, centerY, innerRadius, centerPaint);
 
-        // 在中心圆内绘制提示文字
-        textPaint.setColor(0xFF999999);
-        textPaint.setTextSize(spToPx(10));
-        textPaint.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText("各计时", centerX, centerY - spToPx(4), textPaint);
-        canvas.drawText("占比", centerX, centerY + spToPx(10), textPaint);
+            textPaint.setColor(0xFF999999);
+            textPaint.setTextSize(spToPx(10));
+            textPaint.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText("各计时", centerX, centerY - spToPx(4), textPaint);
+            canvas.drawText("占比", centerX, centerY + spToPx(10), textPaint);
+        }
     }
 
     private void drawEmptyState(Canvas canvas) {
         int centerX = getWidth() / 2;
-        int centerY = (int) (getHeight() - dpToPx(40)) / 2;
-        int radius = Math.min(getWidth(), (int) (getHeight() - dpToPx(60))) / 2 - (int) dpToPx(8);
+        int centerY;
+        int radius;
 
-        slicePaint.setColor(0xFFEEEEEE);
+        if (isRingStyle) {
+            centerY = (int) (getHeight() - dpToPx(40)) / 2;
+            radius = Math.min(getWidth(), (int) (getHeight() - dpToPx(60))) / 2 - (int) dpToPx(8);
+        } else {
+            centerY = getHeight() / 2;
+            radius = Math.min(getWidth(), getHeight()) / 2 - (int) dpToPx(10);
+        }
+
+        if (isRingStyle) {
+            slicePaint.setColor(0xFFEEEEEE);
+        } else {
+            slicePaint.setColor(0xFFE0E0E0);
+        }
         canvas.drawCircle(centerX, centerY, radius, slicePaint);
 
-        centerPaint.setColor(0xFFFFFFFF);
-        canvas.drawCircle(centerX, centerY, radius * 0.55f, centerPaint);
+        if (isRingStyle) {
+            centerPaint.setColor(0xFFFFFFFF);
+            canvas.drawCircle(centerX, centerY, radius * 0.55f, centerPaint);
+        }
     }
 }

@@ -23,15 +23,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 import android.app.Dialog;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class TimerFragment extends Fragment {
     private TextView timerHours, timerMinutes, timerSeconds;
@@ -40,7 +34,7 @@ public class TimerFragment extends Fragment {
     private LinearLayout btnPlayPause, btnStop, btnReset;
     private ImageView imagePlayPause, imageStop, imageReset;
 
-    private TextView tag1, tag2, tag3, tag4;
+    private List<TextView> tagViews;
     private LinearLayout cardContainer;
 
     private String currentTimerName = "";
@@ -86,10 +80,11 @@ public class TimerFragment extends Fragment {
         imageStop = view.findViewById(R.id.image_stop);
         imageReset = view.findViewById(R.id.image_reset);
 
-        tag1 = view.findViewById(R.id.tag1);
-        tag2 = view.findViewById(R.id.tag2);
-        tag3 = view.findViewById(R.id.tag3);
-        tag4 = view.findViewById(R.id.tag4);
+        tagViews = new ArrayList<>();
+        tagViews.add(view.findViewById(R.id.tag1));
+        tagViews.add(view.findViewById(R.id.tag2));
+        tagViews.add(view.findViewById(R.id.tag3));
+        tagViews.add(view.findViewById(R.id.tag4));
 
         dataManager = new DataManager(requireContext());
 
@@ -287,78 +282,9 @@ public class TimerFragment extends Fragment {
 
     private void updateFrequentTags() {
         List<TimerRecord> records = dataManager.getRecords();
-        Map<String, Integer> nameCountMap = new HashMap<>();
-
-        for (TimerRecord record : records) {
-            String name = record.getName();
-            if (!"REC".equals(name)) {
-                nameCountMap.put(name, nameCountMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        List<Map.Entry<String, Integer>> sortedEntries = new ArrayList<>(nameCountMap.entrySet());
-        Collections.sort(sortedEntries, (a, b) -> b.getValue().compareTo(a.getValue()));
-
-        List<String> frequentNames = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : sortedEntries) {
-            if (entry.getValue() >= 5) {
-                frequentNames.add(entry.getKey());
-            }
-        }
-
-        String[] defaultTags = {"学习", "工作", "看书", "运动"};
-        
-        for (int i = 0; i < 4; i++) {
-            String tagText;
-            if (i < frequentNames.size()) {
-                tagText = frequentNames.get(i);
-            } else {
-                int defaultIndex = i - frequentNames.size();
-                String usedDefault = defaultTags[defaultIndex];
-                while (frequentNames.contains(usedDefault) && defaultIndex + 1 < defaultTags.length) {
-                    defaultIndex++;
-                    usedDefault = defaultTags[defaultIndex];
-                }
-                tagText = usedDefault;
-            }
-            
-            switch (i) {
-                case 0:
-                    tag1.setText(tagText);
-                    tag1.setVisibility(View.VISIBLE);
-                    setupTagClickListener(tag1);
-                    break;
-                case 1:
-                    tag2.setText(tagText);
-                    tag2.setVisibility(View.VISIBLE);
-                    setupTagClickListener(tag2);
-                    break;
-                case 2:
-                    tag3.setText(tagText);
-                    tag3.setVisibility(View.VISIBLE);
-                    setupTagClickListener(tag3);
-                    break;
-                case 3:
-                    tag4.setText(tagText);
-                    tag4.setVisibility(View.VISIBLE);
-                    setupTagClickListener(tag4);
-                    break;
-            }
-        }
-    }
-
-    private void updateTagVisibility(TextView tag, String name) {
-        if (name != null && !name.isEmpty()) {
-            tag.setText(name);
-            tag.setVisibility(View.VISIBLE);
-        } else {
-            tag.setVisibility(View.GONE);
-        }
-    }
-
-    private void setupTagClickListener(TextView tag) {
-        tag.setOnClickListener(v -> {
-            currentTimerName = tag.getText().toString();
+        List<String> tags = TagRecommender.getRecommendedTags(records);
+        TagRecommender.applyToViews(tagViews, tags, tag -> {
+            currentTimerName = tag;
             updateNameButtonAppearance();
         });
     }
@@ -474,15 +400,9 @@ public class TimerFragment extends Fragment {
 
             int totalMinutes = Math.max(1, (int) Math.round(elapsedTime / 60000f));
 
-            Date now = new Date();
-            SimpleDateFormat sdfDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-            String endStr = sdfDateTime.format(now);
-
-            // 使用用户第一次点击开始计时的真实时间作为开始时间
-            Date startDate = new Date(firstStartTime);
-            String startStr = sdfDateTime.format(startDate);
-
-            TimerRecord record = new TimerRecord(finalName, startStr, endStr, totalMinutes + "分钟", totalMinutes);
+            // 直接使用 long 时间戳：firstStartTime 是用户第一次点击开始计时的真实时间
+            long endTime = System.currentTimeMillis();
+            TimerRecord record = new TimerRecord(finalName, firstStartTime, endTime, totalMinutes + "分钟", totalMinutes);
             dataManager.addRecord(record);
 
             isRunning = false;
