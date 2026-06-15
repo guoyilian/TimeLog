@@ -63,8 +63,7 @@
         android:orientation="vertical"
         android:paddingTop="16dp"
         android:paddingLeft="16dp"
-        android:paddingRight="16dp"
-        android:paddingBottom="16dp">
+        android:paddingRight="16dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -79,6 +78,87 @@
             android:layout_width="160dp"
             android:layout_height="40dp"
             android:spinnerMode="dropdown"/>
+
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:background="#EEEEEE"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="12dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:id="@+id/layout_backup_info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:paddingRight="8dp">
+
+            <TextView
+                android:id="@+id/label_backup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="数据备份"
+                android:textSize="12sp"
+                android:textColor="#999999"/>
+
+            <TextView
+                android:id="@+id/icon_backup_help"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginLeft="4dp"
+                android:background="@drawable/icon_help"
+                android:text="?"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:gravity="center"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btn_export"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="导出数据"
+            android:textColor="#5A7D5A"
+            android:textSize="13sp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:background="?android:attr/selectableItemBackground"/>
+
+        <TextView
+            android:id="@+id/btn_import"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="导入数据"
+            android:textColor="#5A7D5A"
+            android:textSize="13sp"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:background="?android:attr/selectableItemBackground"/>
 
     </LinearLayout>
 

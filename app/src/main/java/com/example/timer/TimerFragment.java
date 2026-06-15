@@ -422,6 +422,10 @@ public class TimerFragment extends Fragment {
                 listener.onRecordAdded();
             }
 
+            if (dataManager != null) {
+                dataManager.clearRunningTimerState();
+            }
+
             showCustomToast(true);
         } catch (Exception e) {
             e.printStackTrace();
@@ -444,6 +448,10 @@ public class TimerFragment extends Fragment {
 
         hideResetButton();
         animateRunningToStart();
+
+        if (dataManager != null) {
+            dataManager.clearRunningTimerState();
+        }
     }
 
     private void showResetButton() {
@@ -550,10 +558,117 @@ public class TimerFragment extends Fragment {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        persistRunningState();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        persistRunningState();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        restoreRunningState();
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
+        }
+    }
+
+    private void persistRunningState() {
+        if (dataManager == null) return;
+
+        if (isRunning || isPaused) {
+            DataManager.RunningTimerState state = new DataManager.RunningTimerState(
+                    firstStartTime,
+                    elapsedTime,
+                    isRunning,
+                    isPaused,
+                    currentTimerName
+            );
+            dataManager.saveRunningTimerState(state);
+        } else {
+            dataManager.clearRunningTimerState();
+        }
+    }
+
+    private void applyRunningButtonState(boolean isRunning) {
+        btnPlayPause.post(() -> {
+            if (buttonOffset == 0) {
+                int buttonWidth = btnPlayPause.getWidth();
+                if (buttonWidth > 0) {
+                    buttonOffset = (float) (buttonWidth / 2.0 + BUTTON_GAP / 2.0);
+                }
+            }
+
+            if (isRunning) {
+                imagePlayPause.setImageResource(R.drawable.ic_pause);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+            } else {
+                imagePlayPause.setImageResource(R.drawable.ic_play);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+            }
+
+            btnPlayPause.setTranslationX(-buttonOffset);
+
+            btnStop.setAlpha(1f);
+            btnStop.setTranslationX(buttonOffset);
+            btnStop.setVisibility(View.VISIBLE);
+
+            btnReset.setAlpha(1f);
+            btnReset.setScaleX(1f);
+            btnReset.setScaleY(1f);
+            btnReset.setVisibility(View.VISIBLE);
+        });
+    }
+
+    private void restoreRunningState() {
+        if (dataManager == null) return;
+
+        if (isRunning || isPaused) return;
+
+        DataManager.RunningTimerState state = dataManager.getRunningTimerState();
+        if (state == null) return;
+
+        firstStartTime = state.firstStartTime;
+        currentTimerName = state.timerName != null ? state.timerName : "";
+        updateNameButtonAppearance();
+
+        if (state.isRunning) {
+            isRunning = true;
+            isPaused = false;
+            startTime = System.currentTimeMillis() - state.elapsedTime;
+            elapsedTime = state.elapsedTime;
+            updateTimerDisplay();
+
+            runnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (isRunning && timerHours != null) {
+                        elapsedTime = System.currentTimeMillis() - startTime;
+                        updateTimerDisplay();
+                        handler.postDelayed(this, 50);
+                    }
+                }
+            };
+            handler.post(runnable);
+
+            applyRunningButtonState(true);
+        } else if (state.isPaused) {
+            isRunning = false;
+            isPaused = true;
+            elapsedTime = state.elapsedTime;
+            updateTimerDisplay();
+
+            applyRunningButtonState(false);
         }
     }
 }

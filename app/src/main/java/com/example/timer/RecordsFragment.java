@@ -1,5 +1,8 @@
 package com.example.timer;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,14 +10,28 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 
@@ -43,6 +60,8 @@ public class RecordsFragment extends Fragment {
     private String selectedDate;
     private static final long ANIMATION_DURATION = 300;
     private boolean isAnimating = false;
+
+    private ActivityResultLauncher<Intent> openFileLauncher;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -131,7 +150,21 @@ public class RecordsFragment extends Fragment {
             yearStatisticsView.setOnMonthClickListener((year, month) -> {
                 switchSubView("month", year, month, true);
             });
+            yearStatisticsView.setOnExportClickListener(() -> startExport());
+            yearStatisticsView.setOnImportClickListener(() -> startImport());
         }
+
+        openFileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            readJsonFromFile(uri);
+                        }
+                    }
+                }
+        );
 
         if (weekBarChart != null) {
             weekBarChart.setOnBarClickListener((dayData, index) -> {
@@ -494,6 +527,123 @@ public class RecordsFragment extends Fragment {
     private void renderYearHeatmap() {
         if (yearStatisticsView != null) {
             yearStatisticsView.updateData(dataManager.getRecords());
+        }
+    }
+
+    private void startExport() {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(new Date());
+        String fileName = "timer-backup-" + timeStamp + ".json";
+        String json = dataManager.exportRecordsToJson();
+        int total = dataManager.getRecordCount();
+
+        try {
+            android.content.ContentResolver resolver = requireContext().getContentResolver();
+            android.content.ContentValues values = new android.content.ContentValues();
+            values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json");
+            values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/TimerBackup");
+
+            Uri fileUri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (fileUri == null) {
+                Toast.makeText(requireContext(), "导出失败：无法创建文件", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            OutputStream outputStream = null;
+            OutputStreamWriter writer = null;
+            try {
+                outputStream = resolver.openOutputStream(fileUri);
+                if (outputStream == null) {
+                    Toast.makeText(requireContext(), "导出失败：无法写入文件", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                writer = new OutputStreamWriter(outputStream);
+                writer.write(json);
+                writer.flush();
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("导出成功")
+                        .setMessage("已成功导出 " + total + " 条计时记录。\n\n备份文件已保存到：\n\n📁 内部存储/下载/TimerBackup/\n📄 " + fileName + "\n\n如需恢复数据，在导入数据时选择该文件即可。")
+                        .setPositiveButton("我知道了", null)
+                        .show();
+            } catch (IOException e) {
+                Toast.makeText(requireContext(), "导出失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+            } finally {
+                if (writer != null) { try { writer.close(); } catch (IOException ignored) {} }
+                if (outputStream != null) { try { outputStream.close(); } catch (IOException ignored) {} }
+            }
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "导出失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void startImport() {
+        AlertDialog confirm = new AlertDialog.Builder(requireContext())
+                .setTitle("导入数据")
+                .setMessage("将从备份文件中读取记录并与现有数据合并（已存在的记录不会重复导入）。\n\n请在文件管理器中找到：\n下载/TimerBackup/ 目录\n下的 .json 备份文件。")
+                .setPositiveButton("继续导入", (d, w) -> {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("application/json");
+                    try {
+                        openFileLauncher.launch(intent);
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "导入失败：无法打开文件选择器", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .create();
+        confirm.show();
+    }
+
+    private void readJsonFromFile(Uri uri) {
+        StringBuilder jsonBuilder = new StringBuilder();
+        InputStream inputStream = null;
+        BufferedReader reader = null;
+        try {
+            inputStream = requireContext().getContentResolver().openInputStream(uri);
+            if (inputStream == null) {
+                Toast.makeText(requireContext(), "导入失败：无法读取文件", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jsonBuilder.append(line);
+            }
+        } catch (IOException e) {
+            Toast.makeText(requireContext(), "导入失败：" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            return;
+        } finally {
+            if (reader != null) {
+                try { reader.close(); } catch (IOException ignored) {}
+            }
+            if (inputStream != null) {
+                try { inputStream.close(); } catch (IOException ignored) {}
+            }
+        }
+        int added = dataManager.importRecordsFromJson(jsonBuilder.toString());
+        if (added > 0) {
+            Toast.makeText(requireContext(), "已导入 " + added + " 条新记录", Toast.LENGTH_LONG).show();
+            refreshAllData();
+        } else {
+            Toast.makeText(requireContext(), "未找到可导入的新记录", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void refreshAllData() {
+        List<TimerRecord> records = dataManager.getRecords();
+        if (dayAdapter != null) {
+            dayAdapter.setRecords(new ArrayList<>());
+        }
+        List<TimerRecord> dayRecords = RecordsDataFilter.filterByDate(records, selectedDate);
+        renderDayList(dayRecords);
+        updateDayChart();
+        renderWeekChart();
+        if (monthHeatmap != null) {
+            renderMonthHeatmap();
+        }
+        if (yearStatisticsView != null) {
+            yearStatisticsView.updateData(records);
         }
     }
 

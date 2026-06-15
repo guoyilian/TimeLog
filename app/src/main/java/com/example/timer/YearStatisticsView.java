@@ -20,13 +20,25 @@ public class YearStatisticsView extends LinearLayout {
     private TextView totalDays;
     private TextView totalHours;
     private Spinner yearSpinner;
+    private View btnExport;
+    private View btnImport;
     private YearHeatmapView.OnMonthClickListener monthClickListener;
+    private OnExportClickListener exportClickListener;
+    private OnImportClickListener importClickListener;
 
     private int currentYear;
     private List<TimerRecord> allRecords;
     private List<Integer> availableYears;
     private boolean isInitializing = true;
     private boolean hasInitializedYear = false; // 标记是否已经初始化过年份
+
+    public interface OnExportClickListener {
+        void onExportClick();
+    }
+
+    public interface OnImportClickListener {
+        void onImportClick();
+    }
 
     public YearStatisticsView(Context context) {
         super(context);
@@ -73,10 +85,61 @@ public class YearStatisticsView extends LinearLayout {
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
+
+        btnExport = findViewById(R.id.btn_export);
+        btnImport = findViewById(R.id.btn_import);
+        View layoutBackupInfo = findViewById(R.id.layout_backup_info);
+
+        if (btnExport != null) {
+            btnExport.setOnClickListener(v -> {
+                if (exportClickListener != null) {
+                    exportClickListener.onExportClick();
+                }
+            });
+        }
+
+        if (btnImport != null) {
+            btnImport.setOnClickListener(v -> {
+                if (importClickListener != null) {
+                    importClickListener.onImportClick();
+                }
+            });
+        }
+
+        if (layoutBackupInfo != null) {
+            layoutBackupInfo.setOnClickListener(v -> {
+                String message = "📌 为什么要备份数据？\n" +
+                        "您的计时数据保存在应用内部，卸载应用、清除应用数据、或手机出现故障时，数据都会丢失。\n\n" +
+                        "定期备份可以保护您的时间记录不被意外清除。\n\n" +
+                        "📁 导出数据\n" +
+                        "• 导出的文件会保存到：手机/下载/TimerBackup 文件夹\n" +
+                        "• 每次导出都会生成新文件，不会覆盖之前的备份\n" +
+                        "• 建议每月或重要记录后都建议导出备份\n\n" +
+                        "• 备份文件可在手机\"文件管理\"→\"下载\"→\"TimerBackup\"中找到\n\n" +
+                        "📂 导入数据\n" +
+                        "• 导入时会合并数据，不会覆盖已有记录\n" +
+                        "• 若导入的记录与本地相同（同一条记录会自动去重\n" +
+                        "• 换手机或重装应用后，建议先导入备份";
+
+                new androidx.appcompat.app.AlertDialog.Builder(getContext())
+                        .setTitle("数据备份说明")
+                        .setMessage(message)
+                        .setPositiveButton("我知道了", null)
+                        .show();
+            });
+        }
     }
 
     public void setOnMonthClickListener(YearHeatmapView.OnMonthClickListener listener) {
         this.monthClickListener = listener;
+    }
+
+    public void setOnExportClickListener(OnExportClickListener listener) {
+        this.exportClickListener = listener;
+    }
+
+    public void setOnImportClickListener(OnImportClickListener listener) {
+        this.importClickListener = listener;
     }
 
     public void updateData(List<TimerRecord> records) {

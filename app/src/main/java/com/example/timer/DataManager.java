@@ -13,12 +13,53 @@ import java.util.List;
 public class DataManager {
     private static final String PREFS_NAME = "TimerRecords";
     private static final String RECORDS_KEY = "records";
+    private static final String STATE_KEY = "running_timer_state";
     private SharedPreferences prefs;
     private Gson gson;
 
     public DataManager(Context context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         gson = new Gson();
+    }
+
+    public RunningTimerState getRunningTimerState() {
+        String json = prefs.getString(STATE_KEY, null);
+        if (json == null) {
+            return null;
+        }
+        try {
+            return gson.fromJson(json, RunningTimerState.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public void saveRunningTimerState(RunningTimerState state) {
+        String json = gson.toJson(state);
+        prefs.edit().putString(STATE_KEY, json).apply();
+    }
+
+    public void clearRunningTimerState() {
+        prefs.edit().remove(STATE_KEY).apply();
+    }
+
+    public static class RunningTimerState implements Serializable {
+        public long firstStartTime;
+        public long elapsedTime;
+        public boolean isRunning;
+        public boolean isPaused;
+        public String timerName;
+
+        public RunningTimerState() {}
+
+        public RunningTimerState(long firstStartTime, long elapsedTime, boolean isRunning,
+                                 boolean isPaused, String timerName) {
+            this.firstStartTime = firstStartTime;
+            this.elapsedTime = elapsedTime;
+            this.isRunning = isRunning;
+            this.isPaused = isPaused;
+            this.timerName = timerName;
+        }
     }
 
     public List<TimerRecord> getRecords() {
@@ -101,6 +142,63 @@ public class DataManager {
             }
         }
         saveRecords(records);
+    }
+
+    public String exportRecordsToJson() {
+        List<TimerRecord> records = getRecords();
+        ExportData data = new ExportData();
+        data.version = 1;
+        data.exportedAt = System.currentTimeMillis();
+        data.appVersion = "timer-android-v1";
+        data.recordCount = records.size();
+        data.records = records;
+        return gson.toJson(data);
+    }
+
+    public int importRecordsFromJson(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return 0;
+        }
+        ExportData imported;
+        try {
+            Type type = new TypeToken<ExportData>() {}.getType();
+            imported = gson.fromJson(json, type);
+        } catch (Exception e) {
+            return 0;
+        }
+        if (imported == null || imported.records == null || imported.records.isEmpty()) {
+            return 0;
+        }
+        List<TimerRecord> existingRecords = getRecords();
+        java.util.Set<String> existingIds = new java.util.HashSet<>();
+        for (TimerRecord r : existingRecords) {
+            if (r.getId() != null) {
+                existingIds.add(r.getId());
+            }
+        }
+        int addedCount = 0;
+        for (TimerRecord r : imported.records) {
+            if (r.getId() == null || r.getId().isEmpty()) {
+                continue;
+            }
+            if (!existingIds.contains(r.getId())) {
+                existingRecords.add(0, r);
+                existingIds.add(r.getId());
+                addedCount++;
+            }
+        }
+        if (addedCount > 0) {
+            saveRecords(existingRecords);
+        }
+        return addedCount;
+    }
+
+    private static class ExportData {
+        int version;
+        long exportedAt;
+        String appVersion;
+        int recordCount;
+        List<TimerRecord> records;
     }
 
     private static class LegacyTimerRecord implements Serializable {
