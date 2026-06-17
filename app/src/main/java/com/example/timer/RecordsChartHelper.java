@@ -88,7 +88,7 @@ public class RecordsChartHelper {
             });
         }
 
-        itemView.findViewById(R.id.timeline_dot).setBackgroundColor(context.getResources().getColor(R.color.accent));
+        itemView.findViewById(R.id.timeline_dot).setBackgroundColor(context.getResources().getColor(R.color.accent, null));
         itemView.findViewById(R.id.delete_btn).setVisibility(View.GONE);
 
         if (minutes > 0) {

@@ -72,13 +72,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateTabSelection(int position) {
         if (position == 0) {
-            tabTimerText.setTextColor(getResources().getColor(R.color.accent));
-            tabRecordsText.setTextColor(getResources().getColor(R.color.text_secondary));
+            tabTimerText.setTextColor(getResources().getColor(R.color.accent, null));
+            tabRecordsText.setTextColor(getResources().getColor(R.color.text_secondary, null));
             tabTimerLine.setVisibility(View.VISIBLE);
             tabRecordsLine.setVisibility(View.INVISIBLE);
         } else {
-            tabRecordsText.setTextColor(getResources().getColor(R.color.accent));
-            tabTimerText.setTextColor(getResources().getColor(R.color.text_secondary));
+            tabRecordsText.setTextColor(getResources().getColor(R.color.accent, null));
+            tabTimerText.setTextColor(getResources().getColor(R.color.text_secondary, null));
             tabRecordsLine.setVisibility(View.VISIBLE);
             tabTimerLine.setVisibility(View.INVISIBLE);
         }

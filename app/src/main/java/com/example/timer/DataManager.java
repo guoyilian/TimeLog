@@ -43,6 +43,27 @@ public class DataManager {
         prefs.edit().remove(STATE_KEY).apply();
     }
 
+    // 数据变化监听接口
+    public interface OnDataChangedListener {
+        void onDataChanged();
+    }
+    
+    private List<OnDataChangedListener> dataChangedListeners = new ArrayList<>();
+    
+    public void addOnDataChangedListener(OnDataChangedListener listener) {
+        dataChangedListeners.add(listener);
+    }
+    
+    public void removeOnDataChangedListener(OnDataChangedListener listener) {
+        dataChangedListeners.remove(listener);
+    }
+    
+    private void notifyDataChanged() {
+        for (OnDataChangedListener listener : dataChangedListeners) {
+            listener.onDataChanged();
+        }
+    }
+
     public static class RunningTimerState implements Serializable {
         public long firstStartTime;
         public long elapsedTime;
@@ -99,6 +120,7 @@ public class DataManager {
     public void saveRecords(List<TimerRecord> records) {
         String json = gson.toJson(records);
         prefs.edit().putString(RECORDS_KEY, json).apply();
+        notifyDataChanged();
     }
 
     public void addRecord(TimerRecord record) {
@@ -124,7 +146,7 @@ public class DataManager {
         List<TimerRecord> records = getRecords();
         for (int i = 0; i < records.size(); i++) {
             TimerRecord r = records.get(i);
-            if (r.getId() != null && r.getId().equals(record.getId())) {
+            if (java.util.Objects.equals(r.getId(), record.getId())) {
                 records.remove(i);
                 break;
             }
@@ -136,7 +158,7 @@ public class DataManager {
         List<TimerRecord> records = getRecords();
         for (int i = 0; i < records.size(); i++) {
             TimerRecord r = records.get(i);
-            if (r.getId() != null && r.getId().equals(updatedRecord.getId())) {
+            if (java.util.Objects.equals(r.getId(), updatedRecord.getId())) {
                 records.set(i, updatedRecord);
                 break;
             }

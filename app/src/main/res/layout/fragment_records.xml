@@ -67,7 +67,7 @@
 
     </LinearLayout>
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="60dp">
@@ -87,7 +87,6 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_m"
                     android:layout_marginBottom="@dimen/spacing_l"
                     app:cardCornerRadius="16dp"
                     app:cardBackgroundColor="#FFFFFF"
@@ -99,6 +98,48 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <TextView
+                                android:id="@+id/day_prev"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="◀"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                            <TextView
+                                android:id="@+id/day_title"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="今天"
+                                android:textColor="#5A7D5A"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:gravity="center"/>
+
+                            <TextView
+                                android:id="@+id/day_next"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="▶"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                        </LinearLayout>
 
                         <com.example.timer.DayLineChartView
                             android:id="@+id/day_line_chart"
@@ -144,10 +185,10 @@
                     android:id="@+id/day_timeline_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxHeight="300dp"
                     android:overScrollMode="never"
                     android:clipToPadding="false"
-                    android:paddingTop="8dp"/>
+                    android:paddingTop="8dp"
+                    android:nestedScrollingEnabled="false"/>
 
             </LinearLayout>
 
@@ -163,7 +204,6 @@
                     android:id="@+id/week_chart_card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_m"
                     android:layout_marginBottom="@dimen/spacing_l"
                     app:cardCornerRadius="16dp"
                     app:cardBackgroundColor="#FFFFFF"
@@ -175,6 +215,48 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <TextView
+                                android:id="@+id/week_prev"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="◀"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                            <TextView
+                                android:id="@+id/week_title"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="本周"
+                                android:textColor="#5A7D5A"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:gravity="center"/>
+
+                            <TextView
+                                android:id="@+id/week_next"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="▶"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                        </LinearLayout>
 
                         <com.example.timer.WeekBarChartView
                             android:id="@+id/week_bar_chart"
@@ -189,7 +271,6 @@
                     android:id="@+id/month_heatmap_card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_m"
                     android:layout_marginBottom="@dimen/spacing_l"
                     android:visibility="gone"
                     app:cardCornerRadius="16dp"
@@ -202,6 +283,48 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <TextView
+                                android:id="@+id/month_prev"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="◀"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                            <TextView
+                                android:id="@+id/month_title"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="本月"
+                                android:textColor="#5A7D5A"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:gravity="center"/>
+
+                            <TextView
+                                android:id="@+id/month_next"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:text="▶"
+                                android:textColor="#5A7D5A"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:background="?android:attr/selectableItemBackground"/>
+
+                        </LinearLayout>
 
                         <com.example.timer.MonthHeatmapView
                             android:id="@+id/month_heatmap"
@@ -288,7 +411,7 @@
 
         </LinearLayout>
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"

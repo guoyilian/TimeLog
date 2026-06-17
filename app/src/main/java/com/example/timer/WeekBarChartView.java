@@ -123,7 +123,7 @@ public class WeekBarChartView extends BaseChartView {
 
         paddingLeft = (int) maxLabelWidth + dpToPx(12);
         paddingRight = dpToPx(8);
-        paddingTop = dpToPx(100);
+        paddingTop = dpToPx(70);
         paddingBottom = dpToPx(28);
     }
 
@@ -208,17 +208,6 @@ public class WeekBarChartView extends BaseChartView {
     private void drawTitle(Canvas canvas) {
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        String prefix = "本周总时长：";
-
-        Paint prefixPaint = new Paint();
-        prefixPaint.setColor(Color.parseColor("#5A7D5A"));
-        prefixPaint.setTextSize(spToPx(14));
-        prefixPaint.setFakeBoldText(true);
-        prefixPaint.setAntiAlias(true);
-        prefixPaint.setTextAlign(Paint.Align.CENTER);
-
-        float prefixY = dpToPx(24);
-        canvas.drawText(prefix, getWidth() / 2f, prefixY, prefixPaint);
 
         Paint numPaint = new Paint();
         numPaint.setColor(Color.parseColor("#5A7D5A"));
@@ -252,7 +241,7 @@ public class WeekBarChartView extends BaseChartView {
             totalWidth = minWidth + gap + minUnitWidth;
         }
 
-        float baselineY = dpToPx(80);
+        float baselineY = dpToPx(48);
         float startX = (getWidth() - totalWidth) / 2;
 
         if (hours > 0) {

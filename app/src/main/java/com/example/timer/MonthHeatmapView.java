@@ -222,7 +222,7 @@ public class MonthHeatmapView extends BaseChartView {
 
         Paint.FontMetrics weekdayMetrics = weekdayPaint.getFontMetrics();
         float weekdayBlockHeight = -weekdayMetrics.ascent + weekdayMetrics.descent;
-        float minGridAreaTop = dpToPx(115) + weekdayBlockHeight + cellGap;
+        float minGridAreaTop = dpToPx(70) + weekdayBlockHeight + cellGap;
         float gridAreaBottom = viewHeight - dpToPx(2);
         float availableGridHeight = gridAreaBottom - minGridAreaTop;
         if (availableGridHeight <= 0) return;
@@ -235,7 +235,7 @@ public class MonthHeatmapView extends BaseChartView {
         float gridWidth = GRID_COLUMNS * cellSize + cellGap * (GRID_COLUMNS - 1);
         float actualGridHeight = GRID_ROWS * cellSize + cellGap * (GRID_ROWS - 1);
         gridStartX = (viewWidth - gridWidth) / 2f;
-        gridStartY = gridAreaBottom - actualGridHeight;
+        gridStartY = minGridAreaTop;
 
         cells.clear();
         int day = 1;
@@ -268,17 +268,6 @@ public class MonthHeatmapView extends BaseChartView {
 
         int hours = totalMinutes / 60;
         int mins = totalMinutes % 60;
-        String prefix = year + "年" + month + "月 总时长：";
-
-        Paint prefixPaint = new Paint();
-        prefixPaint.setColor(Color.parseColor("#5A7D5A"));
-        prefixPaint.setTextSize(spToPx(14));
-        prefixPaint.setFakeBoldText(true);
-        prefixPaint.setAntiAlias(true);
-        prefixPaint.setTextAlign(Paint.Align.CENTER);
-
-        float prefixY = dpToPx(24);
-        canvas.drawText(prefix, getWidth() / 2f, prefixY, prefixPaint);
 
         Paint numPaint = new Paint();
         numPaint.setColor(Color.parseColor("#5A7D5A"));
@@ -312,7 +301,7 @@ public class MonthHeatmapView extends BaseChartView {
             totalWidth = minWidth + gap + minUnitWidth;
         }
 
-        float baselineY = dpToPx(80);
+        float baselineY = dpToPx(48);
         float startX = (getWidth() - totalWidth) / 2;
 
         if (hours > 0) {

@@ -88,8 +88,8 @@ public class TimerFragment extends Fragment {
 
         dataManager = new DataManager(requireContext());
 
-        imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
-        imageStop.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+        imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
+        imageStop.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
 
         btnPlayPause.setOnClickListener(v -> togglePlayPause());
         btnStop.setOnClickListener(v -> stopTimer());
@@ -345,7 +345,7 @@ public class TimerFragment extends Fragment {
         }
 
         imagePlayPause.setImageResource(R.drawable.ic_play);
-        imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+        imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
     }
 
     private void resumeTimer() {
@@ -366,7 +366,7 @@ public class TimerFragment extends Fragment {
         handler.post(runnable);
 
         imagePlayPause.setImageResource(R.drawable.ic_pause);
-        imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+        imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
     }
 
     private void stopTimer() {
@@ -497,7 +497,7 @@ public class TimerFragment extends Fragment {
             @Override
             public void onAnimationStart(android.animation.Animator animation) {
                 imagePlayPause.setImageResource(R.drawable.ic_pause);
-                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
             }
 
             @Override
@@ -528,7 +528,7 @@ public class TimerFragment extends Fragment {
             @Override
             public void onAnimationStart(android.animation.Animator animation) {
                 imagePlayPause.setImageResource(R.drawable.ic_play);
-                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
             }
 
             @Override
@@ -611,10 +611,10 @@ public class TimerFragment extends Fragment {
 
             if (isRunning) {
                 imagePlayPause.setImageResource(R.drawable.ic_pause);
-                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
             } else {
                 imagePlayPause.setImageResource(R.drawable.ic_play);
-                imagePlayPause.setColorFilter(getResources().getColor(R.color.white), PorterDuff.Mode.SRC_IN);
+                imagePlayPause.setColorFilter(getResources().getColor(R.color.white, null), PorterDuff.Mode.SRC_IN);
             }
 
             btnPlayPause.setTranslationX(-buttonOffset);

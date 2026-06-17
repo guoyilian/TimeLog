@@ -42,6 +42,15 @@ public class DateUtils {
         }
     }
 
+    public static long parseDate(String dateStr) {
+        try {
+            Date date = DATE_FORMAT.parse(dateStr);
+            return date != null ? getDayStartMillis(date.getTime()) : 0L;
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
     public static int getYear(long timestamp) {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(timestamp);

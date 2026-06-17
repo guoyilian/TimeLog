@@ -23,6 +23,7 @@
     <string name="week_chart_title">本周高效趋势 (小时)</string>
     <string name="month_chart_title">本月集中趋势 (按天)</string>
     <string name="year_chart_title">2026年时间投入图</string>
+    <string name="record_count_format"> | %d次计时</string>
 
     <string name="heatmap_title_format">%1$d月计时热力图</string>
     <string name="heatmap_subtitle">颜色深浅表示计时时长（颜色梯度：1-30，31-60，61-120，&gt;120 分钟）</string>

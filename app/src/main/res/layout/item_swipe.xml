@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.example.timer.SwipeItemView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="64dp"
+    android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
     android:clipChildren="false"
     android:clipToPadding="false">
@@ -29,7 +29,7 @@
     <RelativeLayout
         android:id="@+id/content_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:background="@drawable/timeline_item_bg"
         android:clipChildren="false"
         android:clickable="true"
@@ -54,16 +54,17 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:paddingLeft="16dp"
             android:paddingTop="12dp"
             android:paddingRight="16dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="12dp"
+            android:minHeight="64dp">
 
             <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
                 android:gravity="center_vertical">
@@ -102,7 +103,7 @@
 
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:layout_marginLeft="12dp">
 

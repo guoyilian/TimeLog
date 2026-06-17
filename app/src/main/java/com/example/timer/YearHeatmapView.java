@@ -106,6 +106,29 @@ public class YearHeatmapView extends BaseChartView {
         this.allRecords = records;
         invalidate();
     }
+    
+    private boolean isWithinUsageRange(int month) {
+        if (allRecords == null || allRecords.isEmpty()) return false;
+        
+        // 获取最早记录时间
+        long earliestRecord = Long.MAX_VALUE;
+        for (TimerRecord record : allRecords) {
+            if (record.getStart() < earliestRecord) {
+                earliestRecord = record.getStart();
+            }
+        }
+        
+        Calendar earliestCal = Calendar.getInstance();
+        earliestCal.setTimeInMillis(earliestRecord);
+        int earliestYear = earliestCal.get(Calendar.YEAR);
+        int earliestMonth = earliestCal.get(Calendar.MONTH);
+        
+        // 检查是否在使用范围内（包括最早使用月份之后的所有月份）
+        if (currentYear > earliestYear || (currentYear == earliestYear && month >= earliestMonth)) {
+            return true;
+        }
+        return false;
+    }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -176,9 +199,10 @@ public class YearHeatmapView extends BaseChartView {
 
             boolean isFutureMonth = isFutureMonth(month, today);
             boolean isCurrentMonth = !isFutureMonth && month == today.get(Calendar.MONTH);
+            boolean isWithinUsageRange = isWithinUsageRange(month);
 
             Paint monthTextPaint = textPaint;
-            if (isFutureMonth) {
+            if (isFutureMonth || !isWithinUsageRange) {
                 monthTextPaint = new Paint(textPaint);
                 monthTextPaint.setColor(Color.parseColor("#999999"));
             } else if (isCurrentMonth) {
@@ -199,7 +223,8 @@ public class YearHeatmapView extends BaseChartView {
             int daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
 
             RectF monthRect = new RectF(monthX, monthY, monthX + monthWidth, monthY + monthHeight);
-            monthRects.add(new MonthRect(month, monthRect, !isFutureMonth));
+            boolean isClickable = isWithinUsageRange(month) && !isFutureMonth;
+            monthRects.add(new MonthRect(month, monthRect, isClickable));
 
             for (int day = 0; day < daysInMonth; day++) {
                 int gridX = gridAreaX + ((day + firstDayOfWeek) % 7) * (cellSize + cellGap);

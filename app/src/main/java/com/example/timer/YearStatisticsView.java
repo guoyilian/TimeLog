@@ -4,22 +4,19 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 import android.widget.TextView;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 public class YearStatisticsView extends LinearLayout {
     private YearHeatmapView yearHeatmap;
     private TextView yearTitle;
+    private TextView yearPrev;
+    private TextView yearNext;
     private TextView totalDays;
     private TextView totalHours;
-    private Spinner yearSpinner;
     private View btnExport;
     private View btnImport;
     private YearHeatmapView.OnMonthClickListener monthClickListener;
@@ -27,10 +24,9 @@ public class YearStatisticsView extends LinearLayout {
     private OnImportClickListener importClickListener;
 
     private int currentYear;
+    private int minYear;
+    private int maxYear;
     private List<TimerRecord> allRecords;
-    private List<Integer> availableYears;
-    private boolean isInitializing = true;
-    private boolean hasInitializedYear = false; // 标记是否已经初始化过年份
 
     public interface OnExportClickListener {
         void onExportClick();
@@ -55,34 +51,40 @@ public class YearStatisticsView extends LinearLayout {
 
         yearHeatmap = findViewById(R.id.year_heatmap);
         yearTitle = findViewById(R.id.year_title);
+        yearPrev = findViewById(R.id.year_prev);
+        yearNext = findViewById(R.id.year_next);
         totalDays = findViewById(R.id.total_days);
         totalHours = findViewById(R.id.total_hours);
-        yearSpinner = findViewById(R.id.year_spinner);
 
         Calendar calendar = Calendar.getInstance();
         currentYear = calendar.get(Calendar.YEAR);
+        maxYear = currentYear;
+        minYear = currentYear;
         yearTitle.setText(currentYear + "年 · 年度总览");
+
+        if (yearPrev != null) {
+            yearPrev.setOnClickListener(v -> navigateYear(-1));
+        }
+        if (yearNext != null) {
+            yearNext.setOnClickListener(v -> navigateYear(1));
+        }
 
         yearHeatmap.setOnMonthClickListener((year, month) -> {
             if (monthClickListener != null) {
-                monthClickListener.onMonthClick(year, month);
-            }
-        });
-
-        yearSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!isInitializing && availableYears != null && position < availableYears.size()) {
-                    int selectedYear = availableYears.get(position);
-                    if (selectedYear != currentYear) {
-                        currentYear = selectedYear;
-                        renderYearData(currentYear);
+                // 检查是否在实际数据范围内
+                boolean isInUsageRange = isWithinUsageRange(year, month);
+                if (isInUsageRange) {
+                    // 检查是否是未来月份
+                    Calendar currentCal = Calendar.getInstance();
+                    int currentYear = currentCal.get(Calendar.YEAR);
+                    int currentMonth = currentCal.get(Calendar.MONTH);
+                    
+                    if (!(year > currentYear || (year == currentYear && month > currentMonth))) {
+                        // 实际数据范围内且不是未来月份，允许跳转
+                        monthClickListener.onMonthClick(year, month);
                     }
                 }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+                // 其他情况无响应，不显示Toast
             }
         });
 
@@ -144,65 +146,26 @@ public class YearStatisticsView extends LinearLayout {
 
     public void updateData(List<TimerRecord> records) {
         this.allRecords = records;
-        // 只有首次初始化时才设置为今年，之后保持用户选择的年份
-        if (!hasInitializedYear) {
-            currentYear = Calendar.getInstance().get(Calendar.YEAR);
-            hasInitializedYear = true;
-        }
-        populateYearSpinner();
-        renderYearData(currentYear);
-    }
-
-    public void updateDataForYear(List<TimerRecord> records, int year) {
-        this.allRecords = records;
-        currentYear = year;
-        populateYearSpinner();
-        renderYearData(year);
-    }
-
-    private void populateYearSpinner() {
-        availableYears = extractYearsFromRecords(allRecords);
-        int currentYearNow = Calendar.getInstance().get(Calendar.YEAR);
-        if (!availableYears.contains(currentYearNow)) {
-            availableYears.add(currentYearNow);
-        }
-        java.util.Collections.sort(availableYears, (a, b) -> b - a);
-
-        List<String> yearStrings = new ArrayList<>();
-        for (Integer year : availableYears) {
-            yearStrings.add(year + "年");
-        }
-
-        Context context = getContext();
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, 
-                android.R.layout.simple_spinner_item, yearStrings);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         
-        isInitializing = true;
-        yearSpinner.setAdapter(adapter);
-        
-        int currentYearIndex = availableYears.indexOf(currentYear);
-        if (currentYearIndex >= 0) {
-            yearSpinner.setSelection(currentYearIndex);
-        }
-        isInitializing = false;
-    }
-
-    private List<Integer> extractYearsFromRecords(List<TimerRecord> records) {
-        List<Integer> years = new ArrayList<>();
-
-        if (records == null || records.isEmpty()) {
-            return years;
-        }
-
-        for (TimerRecord record : records) {
-            int year = DateUtils.getYear(record.getStart());
-            if (!years.contains(year)) {
-                years.add(year);
+        // 计算用户最早使用年份
+        if (records != null && !records.isEmpty()) {
+            minYear = Integer.MAX_VALUE;
+            for (TimerRecord record : records) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(record.getStart());
+                int year = cal.get(Calendar.YEAR);
+                if (year < minYear) {
+                    minYear = year;
+                }
             }
+        } else {
+            minYear = Calendar.getInstance().get(Calendar.YEAR);
         }
-
-        return years;
+        
+        maxYear = Calendar.getInstance().get(Calendar.YEAR);
+        currentYear = maxYear;
+        updateArrowVisibility();
+        renderYearData(currentYear);
     }
 
     private void renderYearData(int year) {
@@ -223,6 +186,66 @@ public class YearStatisticsView extends LinearLayout {
         } else {
             totalHours.setText("总计 0小时" + remainingMinutes + "分钟");
         }
+    }
+
+    private void navigateYear(int direction) {
+        int newYear = currentYear + direction;
+        if (newYear >= minYear && newYear <= maxYear) {
+            currentYear = newYear;
+            updateArrowVisibility();
+            renderYearData(currentYear);
+        }
+    }
+
+    private void updateArrowVisibility() {
+        if (yearPrev != null) {
+            boolean canPrev = currentYear > minYear;
+            yearPrev.setAlpha(canPrev ? 1.0f : 0.3f);
+            yearPrev.setClickable(canPrev);
+            yearPrev.setEnabled(canPrev);
+        }
+        if (yearNext != null) {
+            boolean canNext = currentYear < maxYear;
+            yearNext.setAlpha(canNext ? 1.0f : 0.3f);
+            yearNext.setClickable(canNext);
+            yearNext.setEnabled(canNext);
+        }
+    }
+    
+    private boolean hasMonthData(int year, int month) {
+        if (allRecords == null || allRecords.isEmpty()) return false;
+        
+        Calendar cal = Calendar.getInstance();
+        for (TimerRecord record : allRecords) {
+            cal.setTimeInMillis(record.getStart());
+            if (cal.get(Calendar.YEAR) == year && cal.get(Calendar.MONTH) == month) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private boolean isWithinUsageRange(int year, int month) {
+        if (allRecords == null || allRecords.isEmpty()) return false;
+        
+        // 获取最早记录时间
+        long earliestRecord = Long.MAX_VALUE;
+        for (TimerRecord record : allRecords) {
+            if (record.getStart() < earliestRecord) {
+                earliestRecord = record.getStart();
+            }
+        }
+        
+        Calendar earliestCal = Calendar.getInstance();
+        earliestCal.setTimeInMillis(earliestRecord);
+        int earliestYear = earliestCal.get(Calendar.YEAR);
+        int earliestMonth = earliestCal.get(Calendar.MONTH);
+        
+        // 检查是否在使用范围内（包括最早使用月份之后的所有月份）
+        if (year > earliestYear || (year == earliestYear && month >= earliestMonth)) {
+            return true;
+        }
+        return false;
     }
 
     private int getYearDaysCount(int year, List<TimerRecord> records) {

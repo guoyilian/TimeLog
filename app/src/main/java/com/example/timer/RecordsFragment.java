@@ -61,6 +61,19 @@ public class RecordsFragment extends Fragment {
     private static final long ANIMATION_DURATION = 300;
     private boolean isAnimating = false;
 
+    // ===== 时间导航状态 =====
+    private long currentDayMillis;        // 日视图：当前查看的那一天（00:00毫秒）
+    private long currentWeekStartMillis;  // 周视图：当前查看周的周一 00:00 毫秒
+    private int currentMonthYear;         // 月视图：当前查看的年份
+    private int currentMonth;             // 月视图：当前查看的月份（0=一月...11=十二月）
+    private long firstDataDayMillis;      // 所有记录中的最早日期（00:00毫秒）
+    private long lastDataDayMillis;       // 所有记录中的最晚日期（00:00毫秒）
+
+    private TextView dayPrev, dayTitle, dayNext;
+    private TextView weekPrev, weekTitle, weekNext;
+    private TextView monthPrev, monthTitle, monthNext;
+
+
     private ActivityResultLauncher<Intent> openFileLauncher;
 
     @Override
@@ -69,11 +82,28 @@ public class RecordsFragment extends Fragment {
 
         dataManager = new DataManager(requireContext());
 
+        // ===== 初始化时间状态：默认指向今天/本周/本月 =====
+        long now = System.currentTimeMillis();
+        currentDayMillis = DateUtils.getDayStartMillis(now);
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(now);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        currentWeekStartMillis = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+
+        Calendar calMonth = Calendar.getInstance();
+        calMonth.setTimeInMillis(now);
+        currentMonthYear = calMonth.get(Calendar.YEAR);
+        currentMonth = calMonth.get(Calendar.MONTH);
+
+        // 初始化数据范围
+        updateDataRange();
+
         dayTimelineList = view.findViewById(R.id.day_timeline_list);
 
         dayAdapter = new DayRecordsAdapter(
-                getResources().getColor(R.color.accent),
-                getResources().getColor(R.color.accent_light)
+                getResources().getColor(R.color.accent, null),
+                getResources().getColor(R.color.accent_light, null)
         );
         dayAdapter.setOnItemDeleteListener(position -> {
             AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -89,14 +119,12 @@ public class RecordsFragment extends Fragment {
                             if (dayAdapter.getItemCount() == 0) {
                                 listHeaderContainer.setVisibility(View.GONE);
                             } else {
-                                listHeaderCount.setText(" | " + dayAdapter.getItemCount() + "次计时");
+                                listHeaderCount.setText(getString(R.string.record_count_format, dayAdapter.getItemCount()));
                             }
                             updateDayChart();
                         }
                     })
-                    .setNegativeButton("取消", (d, which) -> {
-                        dayAdapter.closeSwipeItemAtPosition(position);
-                    })
+                    .setNegativeButton("取消", (d, which) -> dayAdapter.closeSwipeItemAtPosition(position))
                     .create();
             dialog.show();
         });
@@ -129,7 +157,7 @@ public class RecordsFragment extends Fragment {
         });
 
         fabAdd = view.findViewById(R.id.fab_add);
-        fabAdd.setColorFilter(getResources().getColor(R.color.white));
+        fabAdd.setColorFilter(getResources().getColor(R.color.white, null));
         fabAdd.setOnClickListener(v -> dialogHelper.showAddRecordDialog());
 
         subTabDay = view.findViewById(R.id.sub_tab_day);
@@ -142,6 +170,42 @@ public class RecordsFragment extends Fragment {
         monthHeatmap = view.findViewById(R.id.month_heatmap);
         yearStatisticsView = view.findViewById(R.id.year_statistics_view);
 
+        // ===== 导航栏视图引用 =====
+        dayPrev = view.findViewById(R.id.day_prev);
+        dayTitle = view.findViewById(R.id.day_title);
+        dayNext = view.findViewById(R.id.day_next);
+
+        weekPrev = view.findViewById(R.id.week_prev);
+        weekTitle = view.findViewById(R.id.week_title);
+        weekNext = view.findViewById(R.id.week_next);
+
+        monthPrev = view.findViewById(R.id.month_prev);
+        monthTitle = view.findViewById(R.id.month_title);
+        monthNext = view.findViewById(R.id.month_next);
+
+
+        // ===== 导航栏点击事件 =====
+        if (dayPrev != null) {
+            dayPrev.setOnClickListener(v -> navigatePrevDay());
+        }
+        if (dayNext != null) {
+            dayNext.setOnClickListener(v -> navigateNextDay());
+        }
+
+        if (weekPrev != null) {
+            weekPrev.setOnClickListener(v -> navigatePrevWeek());
+        }
+        if (weekNext != null) {
+            weekNext.setOnClickListener(v -> navigateNextWeek());
+        }
+
+        if (monthPrev != null) {
+            monthPrev.setOnClickListener(v -> navigatePrevMonth());
+        }
+        if (monthNext != null) {
+            monthNext.setOnClickListener(v -> navigateNextMonth());
+        }
+
         if (monthHeatmap != null) {
             monthHeatmap.setOnCellClickListener((date, day, minutes) -> chartHelper.showMonthDayDetail(date, minutes));
         }
@@ -153,6 +217,9 @@ public class RecordsFragment extends Fragment {
             yearStatisticsView.setOnExportClickListener(() -> startExport());
             yearStatisticsView.setOnImportClickListener(() -> startImport());
         }
+        
+        // 注册数据变化监听
+        dataManager.addOnDataChangedListener(this::updateDataRange);
 
         openFileLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -223,19 +290,19 @@ public class RecordsFragment extends Fragment {
 
     private void updateSubTabState(String view) {
         subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabDay.setSelected(view.equals("day"));
 
         subTabWeek.setBackgroundResource(view.equals("week") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabWeek.setTextColor(view.equals("week") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabWeek.setTextColor(view.equals("week") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabWeek.setSelected(view.equals("week"));
 
         subTabMonth.setBackgroundResource(view.equals("month") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabMonth.setSelected(view.equals("month"));
 
         subTabYear.setBackgroundResource(view.equals("year") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabYear.setSelected(view.equals("year"));
     }
 
@@ -269,23 +336,24 @@ public class RecordsFragment extends Fragment {
         }
 
         subTabDay.setBackgroundResource(view.equals("day") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabDay.setTextColor(view.equals("day") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabDay.setSelected(view.equals("day"));
 
         subTabWeek.setBackgroundResource(view.equals("week") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabWeek.setTextColor(view.equals("week") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabWeek.setTextColor(view.equals("week") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabWeek.setSelected(view.equals("week"));
 
         subTabMonth.setBackgroundResource(view.equals("month") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabMonth.setTextColor(view.equals("month") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabMonth.setSelected(view.equals("month"));
 
         subTabYear.setBackgroundResource(view.equals("year") ? R.drawable.subtab_active_bg : R.drawable.subtab_inactive_bg);
-        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white) : getResources().getColor(R.color.accent));
+        subTabYear.setTextColor(view.equals("year") ? getResources().getColor(R.color.white, null) : getResources().getColor(R.color.accent, null));
         subTabYear.setSelected(view.equals("year"));
 
-        // 如果切换到日视图，且不带动画且已经在日视图，直接更新数据
+        // 如果切换到日视图，且不带动画且已经在日视图，重置为今天再更新
         if (view.equals("day") && !withAnimation && viewDay.getVisibility() == View.VISIBLE) {
+            currentDayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
             updateDayView();
             return;
         }
@@ -320,6 +388,17 @@ public class RecordsFragment extends Fragment {
         if (view.equals("day")) {
             newView = viewDay;
             fabAdd.setVisibility(View.VISIBLE);
+            if (selectedDate != null && !selectedDate.isEmpty()) {
+                long parsedMillis = DateUtils.parseDate(selectedDate);
+                if (parsedMillis > 0) {
+                    currentDayMillis = parsedMillis;
+                } else {
+                    currentDayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
+                }
+                selectedDate = null;
+            } else {
+                currentDayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
+            }
             updateDayView();
         } else {
             fabAdd.setVisibility(View.GONE);
@@ -329,17 +408,27 @@ public class RecordsFragment extends Fragment {
                 weekChartCard.setVisibility(View.VISIBLE);
                 monthHeatmapCard.setVisibility(View.GONE);
                 yearHeatmapCard.setVisibility(View.GONE);
+                Calendar cal = Calendar.getInstance();
+                cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+                currentWeekStartMillis = DateUtils.getDayStartMillis(cal.getTimeInMillis());
                 renderWeekChart();
                 renderWeekList();
+                updateWeekTitle();
             } else if (view.equals("month")) {
                 weekChartCard.setVisibility(View.GONE);
                 monthHeatmapCard.setVisibility(View.VISIBLE);
                 yearHeatmapCard.setVisibility(View.GONE);
                 if (year > 0 && month >= 0) {
+                    currentMonthYear = year;
+                    currentMonth = month;
                     renderMonthHeatmap(year, month);
                 } else {
+                    Calendar calMonth = Calendar.getInstance();
+                    currentMonthYear = calMonth.get(Calendar.YEAR);
+                    currentMonth = calMonth.get(Calendar.MONTH);
                     renderMonthHeatmap();
                 }
+                updateMonthTitle();
                 chartHelper.clearMonthDayList();
             } else if (view.equals("year")) {
                 weekChartCard.setVisibility(View.GONE);
@@ -373,6 +462,17 @@ public class RecordsFragment extends Fragment {
         if (view.equals("day")) {
             newView = viewDay;
             fabAdd.setVisibility(View.VISIBLE);
+            if (selectedDate != null && !selectedDate.isEmpty()) {
+                long parsedMillis = DateUtils.parseDate(selectedDate);
+                if (parsedMillis > 0) {
+                    currentDayMillis = parsedMillis;
+                } else {
+                    currentDayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
+                }
+                selectedDate = null;
+            } else {
+                currentDayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
+            }
             updateDayView();
         } else {
             fabAdd.setVisibility(View.GONE);
@@ -382,17 +482,27 @@ public class RecordsFragment extends Fragment {
                 weekChartCard.setVisibility(View.VISIBLE);
                 monthHeatmapCard.setVisibility(View.GONE);
                 yearHeatmapCard.setVisibility(View.GONE);
+                Calendar cal = Calendar.getInstance();
+                cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+                currentWeekStartMillis = DateUtils.getDayStartMillis(cal.getTimeInMillis());
                 renderWeekChart();
                 renderWeekList();
+                updateWeekTitle();
             } else if (view.equals("month")) {
                 weekChartCard.setVisibility(View.GONE);
                 monthHeatmapCard.setVisibility(View.VISIBLE);
                 yearHeatmapCard.setVisibility(View.GONE);
                 if (year > 0 && month >= 0) {
+                    currentMonthYear = year;
+                    currentMonth = month;
                     renderMonthHeatmap(year, month);
                 } else {
+                    Calendar calMonth = Calendar.getInstance();
+                    currentMonthYear = calMonth.get(Calendar.YEAR);
+                    currentMonth = calMonth.get(Calendar.MONTH);
                     renderMonthHeatmap();
                 }
+                updateMonthTitle();
                 chartHelper.clearMonthDayList();
             } else if (view.equals("year")) {
                 weekChartCard.setVisibility(View.GONE);
@@ -409,34 +519,113 @@ public class RecordsFragment extends Fragment {
         newView.setVisibility(View.VISIBLE);
     }
 
+    private void updateDataRange() {
+        List<TimerRecord> allRecords = dataManager.getRecords();
+        long todayMillis = DateUtils.getDayStartMillis(System.currentTimeMillis());
+        
+        if (allRecords != null && !allRecords.isEmpty()) {
+            long earliestMillis = Long.MAX_VALUE;
+            long latestMillis = Long.MIN_VALUE;
+            
+            for (TimerRecord record : allRecords) {
+                long recordStart = record.getStart();
+                if (recordStart < earliestMillis) {
+                    earliestMillis = recordStart;
+                }
+                if (recordStart > latestMillis) {
+                    latestMillis = recordStart;
+                }
+            }
+            
+            firstDataDayMillis = DateUtils.getDayStartMillis(earliestMillis);
+            lastDataDayMillis = Math.max(DateUtils.getDayStartMillis(latestMillis), todayMillis);
+        } else {
+            // 如果没有记录，默认数据范围为今天
+            firstDataDayMillis = todayMillis;
+            lastDataDayMillis = todayMillis;
+        }
+        
+        // 确保当前查看的视图在有效范围内
+        adjustCurrentViewToValidRange();
+        
+        // 更新所有视图的箭头状态
+        updateAllArrowStatus();
+    }
+    
+    private void adjustCurrentViewToValidRange() {
+        // 日视图调整
+        if (currentDayMillis < firstDataDayMillis) {
+            currentDayMillis = firstDataDayMillis;
+            updateDayView();
+        } else if (currentDayMillis > lastDataDayMillis) {
+            currentDayMillis = lastDataDayMillis;
+            updateDayView();
+        }
+        
+        // 周视图调整
+        Calendar cal = Calendar.getInstance();
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        
+        // 计算最早数据所在周
+        cal.setTimeInMillis(firstDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long firstDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+        
+        // 计算最晚数据所在周
+        cal.setTimeInMillis(lastDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long lastDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+        
+        if (currentWeekStartMillis < firstDataWeekStart) {
+            currentWeekStartMillis = firstDataWeekStart;
+            updateWeekView();
+        } else if (currentWeekStartMillis > lastDataWeekStart) {
+            currentWeekStartMillis = lastDataWeekStart;
+            updateWeekView();
+        }
+        
+        // 月视图调整
+        cal.setTimeInMillis(firstDataDayMillis);
+        int firstDataYear = cal.get(Calendar.YEAR);
+        int firstDataMonth = cal.get(Calendar.MONTH);
+        
+        cal.setTimeInMillis(lastDataDayMillis);
+        int lastDataYear = cal.get(Calendar.YEAR);
+        int lastDataMonth = cal.get(Calendar.MONTH);
+        
+        if (currentMonthYear < firstDataYear || (currentMonthYear == firstDataYear && currentMonth < firstDataMonth)) {
+            currentMonthYear = firstDataYear;
+            currentMonth = firstDataMonth;
+            updateMonthView();
+        } else if (currentMonthYear > lastDataYear || (currentMonthYear == lastDataYear && currentMonth > lastDataMonth)) {
+            currentMonthYear = lastDataYear;
+            currentMonth = lastDataMonth;
+            updateMonthView();
+        }
+    }
+    
+    private void updateAllArrowStatus() {
+        updateDayTitle();
+        updateWeekTitle();
+        updateMonthTitle();
+    }
+
     private void updateDayView() {
-        List<TimerRecord> dayRecords = RecordsDataFilter.filterByDate(dataManager.getRecords(), selectedDate);
+        // 根据 currentDayMillis 筛选当天记录
+        String dateStr = DateUtils.formatDate(currentDayMillis);
+        List<TimerRecord> dayRecords = RecordsDataFilter.filterByDate(dataManager.getRecords(), dateStr);
 
         if (dayLineChart != null) {
-            // 设置折线图标题
             String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-            long selectedMillis;
-            String dateDisplay;
-            if (selectedDate == null) {
-                // 今天
-                selectedMillis = System.currentTimeMillis();
-                dateDisplay = DateUtils.formatDate(selectedMillis);
-            } else {
-                String[] parts = selectedDate.split("-");
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]) - 1;
-                int day = Integer.parseInt(parts[2]);
-                selectedMillis = DateUtils.getSpecificDayStartMillis(year, month, day);
-                dateDisplay = selectedDate;
-            }
             Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(selectedMillis);
+            cal.setTimeInMillis(currentDayMillis);
             String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
-            dayLineChart.setTitlePrefix(dateDisplay + "（" + dayOfWeek + "）");
+            dayLineChart.setTitlePrefix(dateStr + "（" + dayOfWeek + "）");
             dayLineChart.setData(dayRecords);
         }
 
         renderDayList(dayRecords);
+        updateDayTitle();
     }
 
     private void updateDayChart() {
@@ -445,11 +634,27 @@ public class RecordsFragment extends Fragment {
         }
     }
 
+    private void updateWeekView() {
+        renderWeekChart();
+        renderWeekList();
+        updateWeekTitle();
+    }
+
+    private void updateMonthView() {
+        renderMonthHeatmap();
+        updateMonthTitle();
+        // 月视图列表渲染已整合在renderMonthHeatmap中
+    }
+
     private void renderWeekChart() {
+    renderWeekChart(currentWeekStartMillis);
+}
+
+    private void renderWeekChart(long weekStartMillis) {
         if (weekBarChart == null) return;
 
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        cal.setTimeInMillis(weekStartMillis);
 
         String[] weekDays = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
         List<WeekBarChartView.DayData> dayDataList = new ArrayList<>();
@@ -485,13 +690,7 @@ public class RecordsFragment extends Fragment {
     }
 
     private void renderMonthHeatmap() {
-        if (monthHeatmap == null) return;
-
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.DAY_OF_MONTH, 1);
-        int year = cal.get(Calendar.YEAR);
-        int month = cal.get(Calendar.MONTH);
-        renderMonthHeatmap(year, month);
+        renderMonthHeatmap(currentMonthYear, currentMonth);
     }
 
     private void renderMonthHeatmap(int year, int month) {
@@ -531,10 +730,15 @@ public class RecordsFragment extends Fragment {
     }
 
     private void startExport() {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(new Date());
-        String fileName = "timer-backup-" + timeStamp + ".json";
         String json = dataManager.exportRecordsToJson();
         int total = dataManager.getRecordCount();
+        if (total == 0) {
+            Toast.makeText(requireContext(), "没有数据可以导出", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String fileName = String.format("TimerBackup_%s.json",
+                new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date()));
 
         try {
             android.content.ContentResolver resolver = requireContext().getContentResolver();
@@ -543,7 +747,35 @@ public class RecordsFragment extends Fragment {
             values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json");
             values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/TimerBackup");
 
-            Uri fileUri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            Uri fileUri;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                fileUri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            } else {
+                // 兼容Android Q以下版本
+                java.io.File downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                java.io.File timerDir = new java.io.File(downloadsDir, "TimerBackup");
+                if (!timerDir.exists() && !timerDir.mkdirs()) {
+                    Toast.makeText(requireContext(), "导出失败：无法创建目录", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                java.io.File file = new java.io.File(timerDir, fileName);
+                fileUri = android.net.Uri.fromFile(file);
+                // 使用传统方式写入文件
+                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(file);
+                java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(outputStream);
+                writer.write(json);
+                writer.flush();
+                writer.close();
+                outputStream.close();
+                
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("导出成功")
+                        .setMessage("已成功导出 " + total + " 条计时记录。\n\n备份文件已保存到：\n\n📁 内部存储/下载/TimerBackup/\n📄 " + fileName + "\n\n如需恢复数据，在导入数据时选择该文件即可。")
+                        .setPositiveButton("我知道了", null)
+                        .show();
+                return;
+            }
+            
             if (fileUri == null) {
                 Toast.makeText(requireContext(), "导出失败：无法创建文件", Toast.LENGTH_LONG).show();
                 return;
@@ -648,23 +880,13 @@ public class RecordsFragment extends Fragment {
     }
 
     private void renderDayList(List<TimerRecord> records) {
-        // 不管记录是否为空，都设置列表数据
-        if (selectedDate == null) {
-            listHeader.setText("今日记录");
-        } else {
-            String[] parts = selectedDate.split("-");
-            int year = Integer.parseInt(parts[0]);
-            int month = Integer.parseInt(parts[1]) - 1;
-            int day = Integer.parseInt(parts[2]);
-            long selectedMillis = DateUtils.getSpecificDayStartMillis(year, month, day);
-            Calendar cal = Calendar.getInstance();
-            cal.setTimeInMillis(selectedMillis);
-
-            String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
-            String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
-
-            listHeader.setText(selectedDate + "（" + dayOfWeek + "）");
-        }
+        // 使用 currentDayMillis 显示日期标题
+        String dateStr = DateUtils.formatDate(currentDayMillis);
+        String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(currentDayMillis);
+        String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
+        listHeader.setText(dateStr + "（" + dayOfWeek + "）");
 
         listHeaderCount.setText(" | " + records.size() + "次计时");
 
@@ -685,11 +907,15 @@ public class RecordsFragment extends Fragment {
     }
 
     private void renderWeekList() {
+        renderWeekList(currentWeekStartMillis);
+    }
+
+    private void renderWeekList(long weekStartMillis) {
         if (weekTimelineList == null) return;
         weekTimelineList.removeAllViews();
 
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        cal.setTimeInMillis(weekStartMillis);
 
         String[] weekDays = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
         int[] dayMinutes = new int[7];
@@ -744,7 +970,7 @@ public class RecordsFragment extends Fragment {
                 duration.setText(mins + "分钟");
             }
 
-            itemView.findViewById(R.id.timeline_dot).setBackgroundColor(getResources().getColor(R.color.accent));
+            itemView.findViewById(R.id.timeline_dot).setBackgroundColor(getResources().getColor(R.color.accent, null));
             itemView.findViewById(R.id.delete_btn).setVisibility(View.GONE);
 
             View clickableContent = itemView.findViewById(R.id.clickable_content);
@@ -770,5 +996,222 @@ public class RecordsFragment extends Fragment {
         }
 
         updateDayView();
+    }
+
+    // ===== 日视图导航 =====
+    private void navigatePrevDay() {
+        long nextDayMillis = currentDayMillis - 24L * 60 * 60 * 1000;
+        // 允许切换到数据范围内的所有日期（包括空数据）
+        if (nextDayMillis >= firstDataDayMillis && nextDayMillis <= lastDataDayMillis) {
+            currentDayMillis = nextDayMillis;
+            updateDayView();
+        }
+    }
+
+    private void navigateNextDay() {
+        long nextDayMillis = currentDayMillis + 24L * 60 * 60 * 1000;
+        if (nextDayMillis <= lastDataDayMillis) {
+            currentDayMillis = nextDayMillis;
+            updateDayView();
+        }
+    }
+
+    private void updateDayTitle() {
+        if (dayTitle == null) return;
+
+        String dateStr = DateUtils.formatDate(currentDayMillis);
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(currentDayMillis);
+        String[] weekDays = {"周日", "周一", "周二", "周三", "周四", "周五", "周六"};
+        String dayOfWeek = weekDays[cal.get(Calendar.DAY_OF_WEEK) - 1];
+        dayTitle.setText(dateStr + "（" + dayOfWeek + "）");
+
+        // 更新日视图箭头状态
+        boolean canGoPrev = currentDayMillis > firstDataDayMillis;
+        boolean canGoNext = currentDayMillis < lastDataDayMillis;
+
+        if (dayPrev != null) {
+            dayPrev.setAlpha(canGoPrev ? 1.0f : 0.3f);
+            dayPrev.setClickable(canGoPrev);
+            dayPrev.setEnabled(canGoPrev);
+        }
+        if (dayNext != null) {
+            dayNext.setAlpha(canGoNext ? 1.0f : 0.3f);
+            dayNext.setClickable(canGoNext);
+            dayNext.setEnabled(canGoNext);
+        }
+    }
+
+    // ===== 周视图导航 =====
+    private void navigatePrevWeek() {
+        // 计算最早数据所在周
+        Calendar cal = Calendar.getInstance();
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        cal.setTimeInMillis(firstDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long firstDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+        
+        // 计算最晚数据所在周
+        cal.setTimeInMillis(lastDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long lastDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+
+        long nextWeekMillis = currentWeekStartMillis - 7L * 24 * 60 * 60 * 1000;
+        // 允许切换到数据范围内的所有周（包括空数据）
+        if (nextWeekMillis >= firstDataWeekStart && nextWeekMillis <= lastDataWeekStart) {
+            currentWeekStartMillis = nextWeekMillis;
+            updateWeekView();
+        }
+    }
+
+    private void navigateNextWeek() {
+        // 计算最晚数据所在周
+        Calendar cal = Calendar.getInstance();
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        cal.setTimeInMillis(lastDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long lastDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+
+        long nextWeekMillis = currentWeekStartMillis + 7L * 24 * 60 * 60 * 1000;
+        if (nextWeekMillis <= lastDataWeekStart) {
+            currentWeekStartMillis = nextWeekMillis;
+            updateWeekView();
+        }
+    }
+
+    private void updateWeekTitle() {
+        if (weekTitle == null) return;
+
+        long weekEndMillis = currentWeekStartMillis + 6L * 24 * 60 * 60 * 1000;
+        String startStr = DateUtils.formatDate(currentWeekStartMillis);
+        String endStr = DateUtils.formatDate(weekEndMillis);
+        weekTitle.setText(startStr + "~" + endStr);
+
+        // 更新周视图箭头状态
+        Calendar cal = Calendar.getInstance();
+        cal.setFirstDayOfWeek(Calendar.MONDAY);
+        
+        // 计算最早数据所在周
+        cal.setTimeInMillis(firstDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long firstDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+        
+        // 计算最晚数据所在周
+        cal.setTimeInMillis(lastDataDayMillis);
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        long lastDataWeekStart = DateUtils.getDayStartMillis(cal.getTimeInMillis());
+
+        boolean canGoPrev = currentWeekStartMillis > firstDataWeekStart;
+        boolean canGoNext = currentWeekStartMillis < lastDataWeekStart;
+
+        if (weekPrev != null) {
+            weekPrev.setAlpha(canGoPrev ? 1.0f : 0.3f);
+            weekPrev.setClickable(canGoPrev);
+            weekPrev.setEnabled(canGoPrev);
+        }
+        if (weekNext != null) {
+            weekNext.setAlpha(canGoNext ? 1.0f : 0.3f);
+            weekNext.setClickable(canGoNext);
+            weekNext.setEnabled(canGoNext);
+        }
+    }
+
+    // ===== 月视图导航 =====
+    private void navigatePrevMonth() {
+        // 计算上一个月的日期
+        Calendar cal = Calendar.getInstance();
+        cal.set(currentMonthYear, currentMonth, 1);
+        cal.add(Calendar.MONTH, -1);
+        int prevYear = cal.get(Calendar.YEAR);
+        int prevMonth = cal.get(Calendar.MONTH);
+
+        // 计算最早数据所在月份
+        Calendar firstDataCal = Calendar.getInstance();
+        firstDataCal.setTimeInMillis(firstDataDayMillis);
+        int firstDataYear = firstDataCal.get(Calendar.YEAR);
+        int firstDataMonth = firstDataCal.get(Calendar.MONTH);
+        
+        // 计算最晚数据所在月份
+        Calendar lastDataCal = Calendar.getInstance();
+        lastDataCal.setTimeInMillis(lastDataDayMillis);
+        int lastDataYear = lastDataCal.get(Calendar.YEAR);
+        int lastDataMonth = lastDataCal.get(Calendar.MONTH);
+
+        // 允许切换到数据范围内的所有月份（包括空数据）
+        boolean isAfterFirstData = prevYear > firstDataYear || (prevYear == firstDataYear && prevMonth >= firstDataMonth);
+        boolean isBeforeLastData = prevYear < lastDataYear || (prevYear == lastDataYear && prevMonth <= lastDataMonth);
+
+        if (isAfterFirstData && isBeforeLastData) {
+            currentMonthYear = prevYear;
+            currentMonth = prevMonth;
+            updateMonthView();
+        }
+    }
+
+    private void navigateNextMonth() {
+        int nextMonth = currentMonth + 1;
+        int nextYear = currentMonthYear;
+        if (nextMonth > 11) {
+            nextMonth = 0;
+            nextYear += 1;
+        }
+
+        // 计算最晚数据所在月份
+        Calendar lastDataCal = Calendar.getInstance();
+        lastDataCal.setTimeInMillis(lastDataDayMillis);
+        int lastDataYear = lastDataCal.get(Calendar.YEAR);
+        int lastDataMonth = lastDataCal.get(Calendar.MONTH);
+
+        // 检查是否在数据范围内
+        boolean isBeforeLastData = nextYear < lastDataYear || (nextYear == lastDataYear && nextMonth <= lastDataMonth);
+        if (isBeforeLastData) {
+            currentMonth = nextMonth;
+            currentMonthYear = nextYear;
+            updateMonthView();
+        }
+    }
+
+    private void updateMonthTitle() {
+        if (monthTitle == null) return;
+        monthTitle.setText(currentMonthYear + "年" + (currentMonth + 1) + "月");
+
+        // 更新月视图箭头状态
+        Calendar cal = Calendar.getInstance();
+        
+        // 计算最早数据所在月份
+        cal.setTimeInMillis(firstDataDayMillis);
+        int firstDataYear = cal.get(Calendar.YEAR);
+        int firstDataMonth = cal.get(Calendar.MONTH);
+        
+        // 计算最晚数据所在月份
+        cal.setTimeInMillis(lastDataDayMillis);
+        int lastDataYear = cal.get(Calendar.YEAR);
+        int lastDataMonth = cal.get(Calendar.MONTH);
+
+        boolean canGoPrev = !(currentMonthYear == firstDataYear && currentMonth == firstDataMonth);
+        boolean canGoNext = !(currentMonthYear == lastDataYear && currentMonth == lastDataMonth);
+
+        if (monthPrev != null) {
+            monthPrev.setAlpha(canGoPrev ? 1.0f : 0.3f);
+            monthPrev.setClickable(canGoPrev);
+            monthPrev.setEnabled(canGoPrev);
+        }
+        if (monthNext != null) {
+            monthNext.setAlpha(canGoNext ? 1.0f : 0.3f);
+            monthNext.setClickable(canGoNext);
+            monthNext.setEnabled(canGoNext);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (openFileLauncher != null) {
+            openFileLauncher.unregister();
+        }
+        // 注销数据变化监听
+        if (dataManager != null) {
+            dataManager.removeOnDataChangedListener(this::updateDataRange);
+        }
     }
 }
