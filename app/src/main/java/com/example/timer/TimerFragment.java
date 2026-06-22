@@ -7,6 +7,7 @@ import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -21,6 +22,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import android.app.Dialog;
 import java.util.ArrayList;
@@ -315,17 +317,19 @@ public class TimerFragment extends Fragment {
     private void startTimer() {
         isRunning = true;
         isPaused = false;
-        startTime = System.currentTimeMillis() - elapsedTime;
-        // 只有在第一次开始计时时才记录真实开始时间
+        // 使用 SystemClock.elapsedRealtime() 作为计时基准，它是单调递增的，不受系统时间修改影响
+        startTime = SystemClock.elapsedRealtime() - elapsedTime;
+        // 只有在第一次开始计时时才记录真实开始时间（用于保存记录）
         if (firstStartTime == 0) {
-            firstStartTime = startTime;
+            firstStartTime = System.currentTimeMillis();
         }
 
         runnable = new Runnable() {
             @Override
             public void run() {
                 if (isRunning && timerHours != null) {
-                    elapsedTime = System.currentTimeMillis() - startTime;
+                    // 使用单调时钟计算流逝时间
+                    elapsedTime = SystemClock.elapsedRealtime() - startTime;
                     updateTimerDisplay();
                     handler.postDelayed(this, 50);
                 }
@@ -351,13 +355,15 @@ public class TimerFragment extends Fragment {
     private void resumeTimer() {
         isRunning = true;
         isPaused = false;
-        startTime = System.currentTimeMillis() - elapsedTime;
+        // 使用 SystemClock.elapsedRealtime() 作为计时基准
+        startTime = SystemClock.elapsedRealtime() - elapsedTime;
 
         runnable = new Runnable() {
             @Override
             public void run() {
                 if (isRunning && timerHours != null) {
-                    elapsedTime = System.currentTimeMillis() - startTime;
+                    // 使用单调时钟计算流逝时间
+                    elapsedTime = SystemClock.elapsedRealtime() - startTime;
                     updateTimerDisplay();
                     handler.postDelayed(this, 50);
                 }
@@ -570,6 +576,73 @@ public class TimerFragment extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong("firstStartTime", firstStartTime);
+        outState.putLong("elapsedTime", elapsedTime);
+        outState.putLong("savedElapsedRealtime", SystemClock.elapsedRealtime());
+        outState.putBoolean("isRunning", isRunning);
+        outState.putBoolean("isPaused", isPaused);
+        outState.putString("currentTimerName", currentTimerName);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (savedInstanceState != null) {
+            firstStartTime = savedInstanceState.getLong("firstStartTime", 0);
+            long savedElapsedTime = savedInstanceState.getLong("elapsedTime", 0);
+            long savedElapsedRealtime = savedInstanceState.getLong("savedElapsedRealtime", 0);
+            isRunning = savedInstanceState.getBoolean("isRunning", false);
+            isPaused = savedInstanceState.getBoolean("isPaused", false);
+            currentTimerName = savedInstanceState.getString("currentTimerName", "");
+            updateNameButtonAppearance();
+
+            elapsedTime = savedElapsedTime;
+
+            if (isRunning) {
+                long currentElapsedRealtime = SystemClock.elapsedRealtime();
+
+                // 优先使用单调时钟
+                if (savedElapsedRealtime > 0 && currentElapsedRealtime > savedElapsedRealtime) {
+                    long baseElapsed = savedElapsedRealtime - savedElapsedTime;
+                    long calculatedElapsed = currentElapsedRealtime - baseElapsed;
+                    elapsedTime = Math.max(savedElapsedTime, calculatedElapsed);
+                }
+
+                // 绝对安全检查
+                if (elapsedTime < savedElapsedTime) {
+                    elapsedTime = savedElapsedTime;
+                }
+                if (elapsedTime < 0) {
+                    elapsedTime = 0;
+                }
+
+                startTime = currentElapsedRealtime - elapsedTime;
+                updateTimerDisplay();
+
+                runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isRunning && timerHours != null) {
+                            elapsedTime = SystemClock.elapsedRealtime() - startTime;
+                            updateTimerDisplay();
+                            handler.postDelayed(this, 50);
+                        }
+                    }
+                };
+                handler.post(runnable);
+                applyRunningButtonState(true);
+                showResetButton();
+            } else if (isPaused) {
+                updateTimerDisplay();
+                applyRunningButtonState(false);
+                showResetButton();
+            }
+        }
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         restoreRunningState();
@@ -581,6 +654,8 @@ public class TimerFragment extends Fragment {
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
         }
+        // 在销毁时也保存状态，防止进程被强制杀死时状态丢失
+        persistRunningState();
     }
 
     private void persistRunningState() {
@@ -590,6 +665,8 @@ public class TimerFragment extends Fragment {
             DataManager.RunningTimerState state = new DataManager.RunningTimerState(
                     firstStartTime,
                     elapsedTime,
+                    System.currentTimeMillis(),
+                    SystemClock.elapsedRealtime(),
                     isRunning,
                     isPaused,
                     currentTimerName
@@ -632,28 +709,73 @@ public class TimerFragment extends Fragment {
 
     private void restoreRunningState() {
         if (dataManager == null) return;
-
         if (isRunning || isPaused) return;
 
         DataManager.RunningTimerState state = dataManager.getRunningTimerState();
         if (state == null) return;
 
         firstStartTime = state.firstStartTime;
+        elapsedTime = state.elapsedTime;
         currentTimerName = state.timerName != null ? state.timerName : "";
         updateNameButtonAppearance();
 
         if (state.isRunning) {
             isRunning = true;
             isPaused = false;
-            startTime = System.currentTimeMillis() - state.elapsedTime;
-            elapsedTime = state.elapsedTime;
+
+            long currentElapsedRealtime = SystemClock.elapsedRealtime();
+            long savedElapsedTime = state.elapsedTime;
+
+            // 策略1：优先使用单调时钟（最准确，不受系统时间修改影响）
+            if (state.lastUpdateElapsedRealtime > 0 && currentElapsedRealtime > state.lastUpdateElapsedRealtime) {
+                // 设备未重启，单调时钟有效
+                // 保存时的基准时间 = lastUpdateElapsedRealtime - savedElapsedTime
+                // 现在的流逝时间 = currentElapsedRealtime - 基准时间
+                long baseElapsed = state.lastUpdateElapsedRealtime - savedElapsedTime;
+                long calculatedElapsed = currentElapsedRealtime - baseElapsed;
+                // 取较大值，确保不会因为任何原因变小
+                elapsedTime = Math.max(savedElapsedTime, calculatedElapsed);
+            } else {
+                // 策略2：单调时钟被重置（设备重启）或无效
+                long currentTime = System.currentTimeMillis();
+
+                if (state.lastUpdateTime > 0) {
+                    // 用真实时间计算从上次更新到现在的流逝
+                    long realTimeGap = currentTime - state.lastUpdateTime;
+                    if (realTimeGap > 0) {
+                        // 如果真实时间差是正数，累加到保存的 elapsedTime 上
+                        // 注意：如果用户在重启前暂停过，这个值可能偏大，但比丢失时间好
+                        elapsedTime = savedElapsedTime + realTimeGap;
+                    }
+                }
+
+                // 策略3：使用 firstStartTime 作为兜底（确保不会比整体时间差小）
+                if (state.firstStartTime > 0) {
+                    long totalElapsed = currentTime - state.firstStartTime;
+                    // 取较大值，防止时间倒走
+                    elapsedTime = Math.max(elapsedTime, totalElapsed);
+                }
+
+                // 最终兜底：绝不能小于保存的值
+                if (elapsedTime < savedElapsedTime) {
+                    elapsedTime = savedElapsedTime;
+                }
+            }
+
+            // 绝对安全检查：绝不能为负数
+            if (elapsedTime < 0) {
+                elapsedTime = 0;
+            }
+
+            // 使用单调时钟设置新的基准时间
+            startTime = currentElapsedRealtime - elapsedTime;
             updateTimerDisplay();
 
             runnable = new Runnable() {
                 @Override
                 public void run() {
                     if (isRunning && timerHours != null) {
-                        elapsedTime = System.currentTimeMillis() - startTime;
+                        elapsedTime = SystemClock.elapsedRealtime() - startTime;
                         updateTimerDisplay();
                         handler.postDelayed(this, 50);
                     }
@@ -662,13 +784,14 @@ public class TimerFragment extends Fragment {
             handler.post(runnable);
 
             applyRunningButtonState(true);
+            showResetButton();
         } else if (state.isPaused) {
             isRunning = false;
             isPaused = true;
-            elapsedTime = state.elapsedTime;
             updateTimerDisplay();
 
             applyRunningButtonState(false);
+            showResetButton();
         }
     }
 }

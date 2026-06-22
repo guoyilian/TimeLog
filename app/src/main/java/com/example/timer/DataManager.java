@@ -67,16 +67,21 @@ public class DataManager {
     public static class RunningTimerState implements Serializable {
         public long firstStartTime;
         public long elapsedTime;
+        public long lastUpdateTime;
+        public long lastUpdateElapsedRealtime;
         public boolean isRunning;
         public boolean isPaused;
         public String timerName;
 
         public RunningTimerState() {}
 
-        public RunningTimerState(long firstStartTime, long elapsedTime, boolean isRunning,
-                                 boolean isPaused, String timerName) {
+        public RunningTimerState(long firstStartTime, long elapsedTime, long lastUpdateTime,
+                                 long lastUpdateElapsedRealtime,
+                                 boolean isRunning, boolean isPaused, String timerName) {
             this.firstStartTime = firstStartTime;
             this.elapsedTime = elapsedTime;
+            this.lastUpdateTime = lastUpdateTime;
+            this.lastUpdateElapsedRealtime = lastUpdateElapsedRealtime;
             this.isRunning = isRunning;
             this.isPaused = isPaused;
             this.timerName = timerName;
