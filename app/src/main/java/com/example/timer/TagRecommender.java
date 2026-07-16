@@ -58,15 +58,25 @@ public class TagRecommender {
         return result;
     }
 
+    private static final int MAX_DISPLAY_LENGTH = 4;
+
+    private static String truncateTag(String tag) {
+        if (tag == null || tag.length() <= MAX_DISPLAY_LENGTH) {
+            return tag;
+        }
+        return tag.substring(0, MAX_DISPLAY_LENGTH) + "…";
+    }
+
     public static void applyToViews(List<TextView> tagViews, List<String> tags, OnTagSelectedListener listener) {
         for (int i = 0; i < tagViews.size() && i < tags.size(); i++) {
             TextView tagView = tagViews.get(i);
-            String tagText = tags.get(i);
-            tagView.setText(tagText);
+            final String fullTagText = tags.get(i);
+            String displayText = truncateTag(fullTagText);
+            tagView.setText(displayText);
             tagView.setVisibility(View.VISIBLE);
             tagView.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onTagSelected(tagText);
+                    listener.onTagSelected(fullTagText);
                 }
             });
         }

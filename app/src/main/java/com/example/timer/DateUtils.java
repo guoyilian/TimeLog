@@ -160,4 +160,13 @@ public class DateUtils {
     public static boolean isInMonth(long timestamp, int year, int month) {
         return timestamp >= getMonthStartMillis(year, month) && timestamp <= getMonthEndMillis(year, month);
     }
+
+    public static String formatDuration(int minutes) {
+        int hours = minutes / 60;
+        int mins = minutes % 60;
+        if (hours > 0) {
+            return hours + "小时" + mins + "分钟";
+        }
+        return mins + "分钟";
+    }
 }

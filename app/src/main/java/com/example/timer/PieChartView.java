@@ -19,10 +19,15 @@ public class PieChartView extends BaseChartView {
     private List<Slice> slices;
     private int[] colors;
 
+    private static final int SOLID_MAX_NAME_LENGTH = 5;
+
     private boolean isRingStyle;
+    private boolean isCompactMode;
     private int outerPadding;
     private int minPercentageToShowLabel;
     private int maxNameLength;
+    private float solidNameTextSizeSp;
+    private float solidPercentTextSizeSp;
 
     public static final int[] DEFAULT_RING_COLORS = {
             0xFF4A7A56, 0xFF6A9974, 0xFF8FB899, 0xFFA3C6A8,
@@ -64,9 +69,11 @@ public class PieChartView extends BaseChartView {
         if (attrs != null) {
             TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.PieChartView);
             isRingStyle = a.getBoolean(R.styleable.PieChartView_ringStyle, true);
+            isCompactMode = a.getBoolean(R.styleable.PieChartView_compactMode, false);
             a.recycle();
         } else {
             isRingStyle = true;
+            isCompactMode = false;
         }
 
         if (isRingStyle) {
@@ -76,9 +83,17 @@ public class PieChartView extends BaseChartView {
             maxNameLength = 4;
         } else {
             colors = DEFAULT_SOLID_COLORS;
-            outerPadding = (int) dpToPx(10);
+            if (isCompactMode) {
+                outerPadding = (int) dpToPx(20);
+                solidNameTextSizeSp = 10f;
+                solidPercentTextSizeSp = 10f;
+            } else {
+                outerPadding = (int) dpToPx(30);
+                solidNameTextSizeSp = 13f;
+                solidPercentTextSizeSp = 12f;
+            }
             minPercentageToShowLabel = 3;
-            maxNameLength = 3;
+            maxNameLength = SOLID_MAX_NAME_LENGTH;
         }
 
         slicePaint = createPaint();
@@ -95,18 +110,36 @@ public class PieChartView extends BaseChartView {
 
     public void setRingStyle(boolean ringStyle) {
         this.isRingStyle = ringStyle;
-        if (ringStyle) {
+        applyStyleConfig();
+        invalidate();
+    }
+
+    public void setCompactMode(boolean compactMode) {
+        this.isCompactMode = compactMode;
+        applyStyleConfig();
+        invalidate();
+    }
+
+    private void applyStyleConfig() {
+        if (isRingStyle) {
             this.colors = DEFAULT_RING_COLORS;
             this.outerPadding = (int) dpToPx(20);
             this.minPercentageToShowLabel = 0;
             this.maxNameLength = 4;
         } else {
             this.colors = DEFAULT_SOLID_COLORS;
-            this.outerPadding = (int) dpToPx(10);
+            if (isCompactMode) {
+                this.outerPadding = (int) dpToPx(20);
+                this.solidNameTextSizeSp = 10f;
+                this.solidPercentTextSizeSp = 10f;
+            } else {
+                this.outerPadding = (int) dpToPx(30);
+                this.solidNameTextSizeSp = 13f;
+                this.solidPercentTextSizeSp = 12f;
+            }
             this.minPercentageToShowLabel = 3;
-            this.maxNameLength = 3;
+            this.maxNameLength = SOLID_MAX_NAME_LENGTH;
         }
-        invalidate();
     }
 
     public void setColors(int[] colors) {
@@ -132,7 +165,27 @@ public class PieChartView extends BaseChartView {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 280);
+        if (isRingStyle || !isCompactMode) {
+            measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 280);
+        } else {
+            int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+            int widthMode = MeasureSpec.getMode(widthMeasureSpec);
+            int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+            int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+
+            if (widthMode == MeasureSpec.EXACTLY || widthMode == MeasureSpec.AT_MOST) {
+                int size = Math.max(widthSize, getSuggestedMinimumWidth());
+                if (heightMode == MeasureSpec.EXACTLY) {
+                    size = Math.min(size, heightSize);
+                }
+                setMeasuredDimension(size, size);
+            } else if (heightMode == MeasureSpec.EXACTLY || heightMode == MeasureSpec.AT_MOST) {
+                int size = Math.max(heightSize, getSuggestedMinimumHeight());
+                setMeasuredDimension(size, size);
+            } else {
+                measureDefaultHeight(widthMeasureSpec, heightMeasureSpec, 280);
+            }
+        }
     }
 
     @Override
@@ -145,9 +198,11 @@ public class PieChartView extends BaseChartView {
         }
 
         int size = Math.min(getWidth(), getHeight()) - outerPadding;
-        int centerX = getWidth() / 2;
+        int centerX;
         int centerY = getHeight() / 2;
         int radius = size / 2;
+
+        centerX = getWidth() / 2;
 
         rectF.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
 
@@ -182,17 +237,30 @@ public class PieChartView extends BaseChartView {
                     textPaint.setTextSize(spToPx(11));
                 } else {
                     textPaint.setColor(0xFF333333);
-                    textPaint.setTextSize(spToPx(12));
+                    textPaint.setTextSize(spToPx(solidNameTextSizeSp));
                 }
                 textPaint.setTextAlign(Paint.Align.CENTER);
 
-                String displayName = slice.name;
-                if (slice.name != null && slice.name.length() > maxNameLength) {
-                    displayName = slice.name.substring(0, maxNameLength) + "…";
-                }
+                String displayName = truncateName(slice.name, maxNameLength);
 
-                canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
-                canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
+                if (isRingStyle) {
+                    canvas.drawText(displayName, labelX, labelY - spToPx(6), textPaint);
+                    canvas.drawText(label, labelX, labelY + spToPx(10), textPaint);
+                } else {
+                    float nameOffset;
+                    float percentOffset;
+                    if (isCompactMode) {
+                        nameOffset = spToPx(4);
+                        percentOffset = spToPx(7);
+                    } else {
+                        nameOffset = spToPx(7);
+                        percentOffset = spToPx(12);
+                    }
+                    textPaint.setTextSize(spToPx(solidNameTextSizeSp));
+                    canvas.drawText(displayName, labelX, labelY - nameOffset, textPaint);
+                    textPaint.setTextSize(spToPx(solidPercentTextSizeSp));
+                    canvas.drawText(label, labelX, labelY + percentOffset, textPaint);
+                }
             }
 
             startAngle += sweepAngle;
@@ -211,17 +279,29 @@ public class PieChartView extends BaseChartView {
         }
     }
 
+    private String truncateName(String name, int maxLength) {
+        if (name == null || name.isEmpty()) {
+            return "";
+        }
+        if (name.length() <= maxLength) {
+            return name;
+        }
+        return name.substring(0, maxLength) + "…";
+    }
+
     private void drawEmptyState(Canvas canvas) {
-        int centerX = getWidth() / 2;
+        int centerX;
         int centerY;
         int radius;
 
         if (isRingStyle) {
+            centerX = getWidth() / 2;
             centerY = (int) (getHeight() - dpToPx(40)) / 2;
             radius = Math.min(getWidth(), (int) (getHeight() - dpToPx(60))) / 2 - (int) dpToPx(8);
         } else {
+            centerX = getWidth() / 2;
             centerY = getHeight() / 2;
-            radius = Math.min(getWidth(), getHeight()) / 2 - (int) dpToPx(10);
+            radius = Math.min(getWidth(), getHeight()) / 2 - (int) dpToPx(20);
         }
 
         if (isRingStyle) {

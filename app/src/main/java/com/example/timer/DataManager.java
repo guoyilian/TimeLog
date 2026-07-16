@@ -17,9 +17,46 @@ public class DataManager {
     private SharedPreferences prefs;
     private Gson gson;
 
+    private static final String MIGRATION_KEY = "migration_cross_day_done";
+
     public DataManager(Context context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         gson = new Gson();
+        migrateCrossDayRecords();
+    }
+
+    private void migrateCrossDayRecords() {
+        if (prefs.getBoolean(MIGRATION_KEY, false)) {
+            return;
+        }
+
+        List<TimerRecord> records = getRecords();
+        boolean migrated = false;
+        List<TimerRecord> newRecords = new ArrayList<>();
+
+        for (TimerRecord record : records) {
+            long startDay = DateUtils.getDayStartMillis(record.getStart());
+            long endDay = DateUtils.getDayStartMillis(record.getEnd());
+
+            if (startDay != endDay) {
+                List<TimerRecord> splitRecords = TimerRecordSplitter.splitRecord(
+                        record.getName(),
+                        record.getStart(),
+                        record.getEnd(),
+                        record.getDurationMin()
+                );
+                newRecords.addAll(splitRecords);
+                migrated = true;
+            } else {
+                newRecords.add(record);
+            }
+        }
+
+        if (migrated) {
+            saveRecords(newRecords);
+        }
+
+        prefs.edit().putBoolean(MIGRATION_KEY, true).apply();
     }
 
     public RunningTimerState getRunningTimerState() {

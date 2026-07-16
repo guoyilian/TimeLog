@@ -160,11 +160,11 @@
                     android:textColor="#70786E"
                     android:textSize="12sp"
                     android:gravity="center"
-                    android:layout_marginRight="8dp"
+                    android:layout_marginRight="6dp"
                     android:visibility="gone"
                     android:ellipsize="end"
                     android:singleLine="true"
-                    android:paddingHorizontal="12dp"/>
+                    android:paddingHorizontal="4dp"/>
 
                 <TextView
                     android:id="@+id/tag2"
@@ -175,11 +175,11 @@
                     android:textColor="#70786E"
                     android:textSize="12sp"
                     android:gravity="center"
-                    android:layout_marginRight="8dp"
+                    android:layout_marginRight="6dp"
                     android:visibility="gone"
                     android:ellipsize="end"
                     android:singleLine="true"
-                    android:paddingHorizontal="12dp"/>
+                    android:paddingHorizontal="4dp"/>
 
                 <TextView
                     android:id="@+id/tag3"
@@ -190,11 +190,11 @@
                     android:textColor="#70786E"
                     android:textSize="12sp"
                     android:gravity="center"
-                    android:layout_marginRight="8dp"
+                    android:layout_marginRight="6dp"
                     android:visibility="gone"
                     android:ellipsize="end"
                     android:singleLine="true"
-                    android:paddingHorizontal="12dp"/>
+                    android:paddingHorizontal="4dp"/>
 
                 <TextView
                     android:id="@+id/tag4"
@@ -208,7 +208,7 @@
                     android:visibility="gone"
                     android:ellipsize="end"
                     android:singleLine="true"
-                    android:paddingHorizontal="12dp"/>
+                    android:paddingHorizontal="4dp"/>
             </LinearLayout>
         </LinearLayout>
 

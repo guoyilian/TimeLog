@@ -406,10 +406,12 @@ public class TimerFragment extends Fragment {
 
             int totalMinutes = Math.max(1, (int) Math.round(elapsedTime / 60000f));
 
-            // 直接使用 long 时间戳：firstStartTime 是用户第一次点击开始计时的真实时间
             long endTime = System.currentTimeMillis();
-            TimerRecord record = new TimerRecord(finalName, firstStartTime, endTime, totalMinutes + "分钟", totalMinutes);
-            dataManager.addRecord(record);
+
+            List<TimerRecord> splitRecords = TimerRecordSplitter.splitRecord(finalName, firstStartTime, endTime, totalMinutes);
+            for (TimerRecord record : splitRecords) {
+                dataManager.addRecord(record);
+            }
 
             isRunning = false;
             isPaused = false;

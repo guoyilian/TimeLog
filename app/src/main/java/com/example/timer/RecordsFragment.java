@@ -41,7 +41,7 @@ public class RecordsFragment extends Fragment {
     private LinearLayout weekTimelineList;
     private TextView listHeader, chartListHeader, listHeaderCount;
     private LinearLayout listHeaderContainer;
-    private View weekChartCard, monthHeatmapCard, yearHeatmapCard, chartTaskStatsCard;
+    private View weekChartCard, monthHeatmapCard, yearHeatmapCard, chartTaskStatsCard, dayTaskStatsCard;
     private LinearLayout viewDay, viewChart;
     private Button subTabDay, subTabWeek, subTabMonth, subTabYear;
     private DayLineChartView dayLineChart;
@@ -53,6 +53,9 @@ public class RecordsFragment extends Fragment {
     private TextView chartStatsTitle;
     private com.example.timer.FlowLayout chartStatsTagsLayout;
     private com.example.timer.PieChartView chartStatsPieChart;
+    private TextView dayStatsTitle;
+    private com.example.timer.PieChartView dayStatsPieChart;
+    private LinearLayout dayStatsTagsLayout;
 
     private RecordsDialogHelper dialogHelper;
     private RecordsChartHelper chartHelper;
@@ -121,7 +124,7 @@ public class RecordsFragment extends Fragment {
                             } else {
                                 listHeaderCount.setText(getString(R.string.record_count_format, dayAdapter.getItemCount()));
                             }
-                            updateDayChart();
+                            updateDayView();
                         }
                     })
                     .setNegativeButton("取消", (d, which) -> dayAdapter.closeSwipeItemAtPosition(position))
@@ -150,6 +153,11 @@ public class RecordsFragment extends Fragment {
         chartStatsTitle = view.findViewById(R.id.chart_stats_title);
         chartStatsTagsLayout = view.findViewById(R.id.chart_stats_tags_layout);
         chartStatsPieChart = view.findViewById(R.id.chart_stats_pie_chart);
+
+        dayTaskStatsCard = view.findViewById(R.id.day_task_stats_card);
+        dayStatsTitle = view.findViewById(R.id.day_stats_title);
+        dayStatsPieChart = view.findViewById(R.id.day_stats_pie_chart);
+        dayStatsTagsLayout = view.findViewById(R.id.day_stats_tags_layout);
 
         viewDay.setOnTouchListener((v, event) -> {
             dayAdapter.closeAllSwipeItems();
@@ -266,7 +274,8 @@ public class RecordsFragment extends Fragment {
                     switchSubView("day", -1, -1, true);
                 },
                 chartListHeader, weekTimelineList, chartStatsTagsLayout, chartStatsTitle,
-                chartTaskStatsCard, chartStatsPieChart);
+                chartTaskStatsCard, chartStatsPieChart,
+                dayTaskStatsCard, dayStatsTitle, dayStatsPieChart, dayStatsTagsLayout);
 
         switchSubView("day");
 
@@ -626,6 +635,9 @@ public class RecordsFragment extends Fragment {
 
         renderDayList(dayRecords);
         updateDayTitle();
+
+        boolean isToday = DateUtils.isSameDay(currentDayMillis, System.currentTimeMillis());
+        chartHelper.renderDayTaskStats(dayRecords, isToday);
     }
 
     private void updateDayChart() {
@@ -867,9 +879,7 @@ public class RecordsFragment extends Fragment {
         if (dayAdapter != null) {
             dayAdapter.setRecords(new ArrayList<>());
         }
-        List<TimerRecord> dayRecords = RecordsDataFilter.filterByDate(records, selectedDate);
-        renderDayList(dayRecords);
-        updateDayChart();
+        updateDayView();
         renderWeekChart();
         if (monthHeatmap != null) {
             renderMonthHeatmap();

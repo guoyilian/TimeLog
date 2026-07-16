@@ -221,31 +221,19 @@ public class RecordsDialogHelper {
             int newEndHour = npEndHour.getValue();
             int newEndMinute = npEndMinute.getValue();
 
-            long startMillis = getTimeMillis(newStartHour, newStartMinute);
-            long endMillis = getTimeMillis(newEndHour, newEndMinute);
-
-            if (endMillis <= startMillis) {
-                Toast.makeText(context, "结束时间不能早于开始时间", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             long dayStart = DateUtils.getDayStartMillis(record.getStart());
             long newStart = dayStart + ((long) newStartHour * 60 + newStartMinute) * 60 * 1000;
             long newEnd = dayStart + ((long) newEndHour * 60 + newEndMinute) * 60 * 1000;
 
-            int newDurationMin = (int) ((newEnd - newStart) / (1000 * 60));
-            String newDuration;
-            int hours = newDurationMin / 60;
-            int mins = newDurationMin % 60;
-            if (hours > 0) {
-                newDuration = hours + "小时" + mins + "分钟";
-            } else {
-                newDuration = mins + "分钟";
+            if (newEnd <= newStart) {
+                newEnd += 24L * 60 * 60 * 1000;
             }
+
+            int newDurationMin = (int) ((newEnd - newStart) / (1000 * 60));
 
             record.setStart(newStart);
             record.setEnd(newEnd);
-            record.setDuration(newDuration);
+            record.setDuration(DateUtils.formatDuration(newDurationMin));
             record.setDurationMin(newDurationMin);
 
             listener.onRecordUpdated(position, record);
@@ -324,23 +312,20 @@ public class RecordsDialogHelper {
             endCal.set(year, month, day, endHour, endMinute, 0);
             endCal.set(Calendar.MILLISECOND, 0);
 
-            if (startCal.getTimeInMillis() > endCal.getTimeInMillis()) {
-                Toast.makeText(context, "结束时间不能早于开始时间", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             long startTime = startCal.getTimeInMillis();
             long endTime = endCal.getTimeInMillis();
+
+            if (endTime <= startTime) {
+                endCal.add(Calendar.DAY_OF_MONTH, 1);
+                endTime = endCal.getTimeInMillis();
+            }
+
             int durationMin = (int) ((endTime - startTime) / 60000);
 
-            TimerRecord newRecord = new TimerRecord();
-            newRecord.setName(name);
-            newRecord.setStart(startTime);
-            newRecord.setEnd(endTime);
-            newRecord.setDuration(String.valueOf(durationMin));
-            newRecord.setDurationMin(durationMin);
-
-            dataManager.addRecord(newRecord);
+            java.util.List<TimerRecord> splitRecords = TimerRecordSplitter.splitRecord(name, startTime, endTime, durationMin);
+            for (TimerRecord record : splitRecords) {
+                dataManager.addRecord(record);
+            }
 
             dismissWithSlideAnimation(dialog, dialogView);
 

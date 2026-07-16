@@ -2,5 +2,6 @@
 <resources>
     <declare-styleable name="PieChartView">
         <attr name="ringStyle" format="boolean" />
+        <attr name="compactMode" format="boolean" />
     </declare-styleable>
 </resources>

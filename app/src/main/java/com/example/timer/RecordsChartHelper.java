@@ -29,6 +29,10 @@ public class RecordsChartHelper {
     private final TextView chartStatsTitle;
     private final View chartTaskStatsCard;
     private final com.example.timer.PieChartView chartStatsPieChart;
+    private final View dayTaskStatsCard;
+    private final TextView dayStatsTitle;
+    private final com.example.timer.PieChartView dayStatsPieChart;
+    private final LinearLayout dayStatsTagsLayout;
 
     public RecordsChartHelper(Context context, DataManager dataManager,
                                OnJumpToDayListener jumpListener,
@@ -37,7 +41,11 @@ public class RecordsChartHelper {
                                com.example.timer.FlowLayout chartStatsTagsLayout,
                                TextView chartStatsTitle,
                                View chartTaskStatsCard,
-                               com.example.timer.PieChartView chartStatsPieChart) {
+                               com.example.timer.PieChartView chartStatsPieChart,
+                               View dayTaskStatsCard,
+                               TextView dayStatsTitle,
+                               com.example.timer.PieChartView dayStatsPieChart,
+                               LinearLayout dayStatsTagsLayout) {
         this.context = context;
         this.dataManager = dataManager;
         this.jumpListener = jumpListener;
@@ -47,6 +55,10 @@ public class RecordsChartHelper {
         this.chartStatsTitle = chartStatsTitle;
         this.chartTaskStatsCard = chartTaskStatsCard;
         this.chartStatsPieChart = chartStatsPieChart;
+        this.dayTaskStatsCard = dayTaskStatsCard;
+        this.dayStatsTitle = dayStatsTitle;
+        this.dayStatsPieChart = dayStatsPieChart;
+        this.dayStatsTagsLayout = dayStatsTagsLayout;
     }
 
     public void showMonthDayDetail(String date, int minutes) {
@@ -271,6 +283,82 @@ public class RecordsChartHelper {
             chartStatsTagsLayout.addView(tagView);
             colorIndex++;
         }
+    }
+
+    public void renderDayTaskStats(List<TimerRecord> records, boolean isToday) {
+        if (dayStatsTagsLayout == null || dayStatsTitle == null || dayTaskStatsCard == null) {
+            return;
+        }
+
+        dayStatsTagsLayout.removeAllViews();
+
+        Map<String, Integer> taskMinutes = aggregateTaskMinutes(records);
+
+        if (taskMinutes.isEmpty()) {
+            dayTaskStatsCard.setVisibility(View.GONE);
+            return;
+        }
+
+        dayTaskStatsCard.setVisibility(View.VISIBLE);
+        dayStatsTitle.setText(isToday ? "今日清单" : "当日清单");
+
+        List<Map.Entry<String, Integer>> sortedList = new ArrayList<>(taskMinutes.entrySet());
+        sortedList.sort((e1, e2) -> e2.getValue().compareTo(e1.getValue()));
+
+        if (dayStatsPieChart != null) {
+            List<PieChartView.Slice> slices = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : sortedList) {
+                slices.add(new PieChartView.Slice(entry.getKey(), entry.getValue()));
+            }
+            dayStatsPieChart.setRingStyle(false);
+            dayStatsPieChart.setCompactMode(true);
+            dayStatsPieChart.setData(slices);
+        }
+
+        int colorIndex = 0;
+        for (Map.Entry<String, Integer> entry : sortedList) {
+            View tagView = LayoutInflater.from(context).inflate(R.layout.item_day_task_stat, dayStatsTagsLayout, false);
+
+            View colorDot = tagView.findViewById(R.id.tag_color_dot);
+            TextView tagName = tagView.findViewById(R.id.tag_name);
+            TextView tagDuration = tagView.findViewById(R.id.tag_duration);
+
+            int color = PieChartView.DEFAULT_SOLID_COLORS[colorIndex % PieChartView.DEFAULT_SOLID_COLORS.length];
+            colorDot.setBackgroundTintList(android.content.res.ColorStateList.valueOf(color));
+
+            int mins = entry.getValue();
+            String name = entry.getKey();
+            if (name != null && name.length() > 5) {
+                name = name.substring(0, 5) + "…";
+            }
+            tagName.setText(name);
+            tagDuration.setText(formatDuration(mins));
+
+            dayStatsTagsLayout.addView(tagView);
+            colorIndex++;
+        }
+    }
+
+    private Map<String, Integer> aggregateTaskMinutes(List<TimerRecord> records) {
+        Map<String, Integer> taskMinutes = new HashMap<>();
+        for (TimerRecord record : records) {
+            String taskName = record.getName();
+            if (taskName == null || taskName.isEmpty()) {
+                taskName = "未命名";
+            }
+            int mins = record.getDurationMin();
+            taskMinutes.put(taskName, taskMinutes.getOrDefault(taskName, 0) + mins);
+        }
+        return taskMinutes;
+    }
+
+    private String formatDuration(int mins) {
+        int hours = mins / 60;
+        int remainingMins = mins % 60;
+        if (hours > 0) {
+            return hours + "h" + remainingMins + "m";
+        }
+        return remainingMins + "m";
     }
 
     public void clearMonthDayList() {
