@@ -39,8 +39,8 @@
 
 ## 下载
 
-[![Download APK](https://img.shields.io/badge/Download-v1.0.1-green)](https://github.com/guoyilian/TimeLog/releases/download/v1.0.1/app-debug.apk)
+[![Download APK](https://img.shields.io/badge/Download-v1.1.0-green)](https://github.com/guoyilian/TimeLog/releases/download/v1.1.0/app-debug.apk)
 
-下载最新版本：[TimeLog v1.0.1](https://github.com/guoyilian/TimeLog/releases/download/v1.0.1/app-debug.apk)
+下载最新版本：[TimeLog v1.1.0](https://github.com/guoyilian/TimeLog/releases/download/v1.1.0/app-debug.apk)
 
 
