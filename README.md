@@ -42,6 +42,6 @@
 [![Download APK](https://img.shields.io/badge/Download-v1.1.0-green)](https://github.com/guoyilian/TimeLog/releases/download/v1.1.0/app-debug.apk)
 
 - 下载最新版本：[TimeLog v1.1.0](https://github.com/guoyilian/TimeLog/releases/download/v1.1.0/app-debug.apk)
-- 小红书网友titu计时标签细化版本：[TimeLog v1.1.0](https://github.com/guoyilian/TimeLog//download/v1.1.2/TimeLog-common-names-debug.apk.1)
+- 小红书网友titu计时标签细化版本：[TimeLog v1.1.2](https://github.com/guoyilian/TimeLog//download/v1.1.2/TimeLog-common-names-debug.apk.1)
 
 
